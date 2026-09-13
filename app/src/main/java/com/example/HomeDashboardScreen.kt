@@ -1,6 +1,9 @@
 package com.example
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,6 +33,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -74,8 +78,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -90,6 +97,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.islamic.IslamicSuiteScreen
+import com.example.islamic.IslamicSuiteTab
+import com.example.islamic.NextPrayerCompactWidget
 import com.example.ui.theme.BackgroundGray
 import com.example.ui.theme.RoyalEmerald
 
@@ -110,35 +120,47 @@ fun HomeDashboardScreen(
   val layoutDirection = if (selectedLang == "AR") LayoutDirection.Rtl else LayoutDirection.Ltr
   var showLanguageMenu by remember { mutableStateOf(false) }
 
-  // Interactive user stats
-  var userCoins by remember { mutableIntStateOf(250) }
-  var userLevel by remember { mutableIntStateOf(1) }
-  var userStreak by remember { mutableIntStateOf(3) }
+  // Interactive user stats backed by OfflineProgressRepository
+  val progressRepo = remember { OfflineProgressRepository.getInstance(context) }
+  val userCoins = progressRepo.userCoins
+  val userLevel = progressRepo.userLevel
+  val userStreak = progressRepo.userStreak
   var selectedLetterForDetail by remember { mutableStateOf<ArabicLetter?>(null) }
   var letterForMakhrajVisualizer by remember { mutableStateOf<ArabicLetter?>(null) }
   var showSettingsDialog by remember { mutableStateOf(false) }
   var activeGameModal by remember { mutableStateOf<GameMode?>(null) }
-  var isLetterGridView by remember { mutableStateOf(false) }
-  var isShapeMasterRoadmapOpen by remember { mutableStateOf(false) }
-
-  if (isShapeMasterRoadmapOpen) {
-    ShapeMasterRoadmapScreen(
-      selectedLang = selectedLang,
-      onLanguageChange = onLanguageChange,
-      soundManager = soundManager,
-      onBackToDashboard = { isShapeMasterRoadmapOpen = false },
-      onLevelStatsUpdated = { starsAdded, xpAdded ->
-        userCoins += starsAdded
-        userStreak += 1
-        userLevel = 1 + (userCoins / 300)
-      }
-    )
-    return
-  }
+  var isLetterGridView by remember { mutableStateOf(true) }
+  var currentBottomTab by remember { mutableStateOf(MainAppTab.HOME) }
+  var islamicCornerInitialTab by remember { mutableStateOf(IslamicSuiteTab.PRAYER_TIMES) }
 
   CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
     Scaffold(
       containerColor = BackgroundGray,
+      bottomBar = {
+        HurufiaBottomNavigationBar(
+          currentTab = currentBottomTab,
+          selectedLang = selectedLang,
+          onTabSelected = { tab ->
+            soundManager.playSuccessChime()
+            currentBottomTab = tab
+          }
+        )
+      }
+    ) { persistentScaffoldPadding ->
+      Box(
+        modifier = Modifier
+          .fillMaxSize()
+          .padding(bottom = persistentScaffoldPadding.calculateBottomPadding())
+      ) {
+        Crossfade(
+          targetState = currentBottomTab,
+          animationSpec = tween(durationMillis = 180),
+          label = "main_tabs_crossfade"
+        ) { tab ->
+          when (tab) {
+            MainAppTab.HOME -> {
+              Scaffold(
+              containerColor = BackgroundGray,
       topBar = {
         TopAppBar(
           title = {
@@ -231,7 +253,21 @@ fun HomeDashboardScreen(
             }
 
             IconButton(
-              onClick = { showSettingsDialog = true },
+              onClick = {
+                soundManager.playSuccessChime()
+                islamicCornerInitialTab = IslamicSuiteTab.PRAYER_TIMES
+                currentBottomTab = MainAppTab.ISLAMIC_CORNER
+              },
+              modifier = Modifier.testTag("home_islamic_suite_button")
+            ) {
+              Text(text = "🕌", fontSize = 18.sp)
+            }
+
+            IconButton(
+              onClick = {
+                soundManager.playSuccessChime()
+                currentBottomTab = MainAppTab.SETTINGS
+              },
               modifier = Modifier.testTag("home_settings_button")
             ) {
               Icon(
@@ -256,13 +292,12 @@ fun HomeDashboardScreen(
           }
         )
       }
-    ) { innerPadding ->
+    ) { homePadding ->
       Column(
         modifier = Modifier
           .fillMaxSize()
-          .padding(innerPadding)
+          .padding(homePadding)
           .statusBarsPadding()
-          .navigationBarsPadding()
           .imePadding()
           .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -285,9 +320,26 @@ fun HomeDashboardScreen(
 
           Spacer(modifier = Modifier.height(14.dp))
 
-          // Hero Graphic Banner
+          // 3. Compact Next Prayer & Islamic Utility Widget
+          NextPrayerCompactWidget(
+            selectedLang = selectedLang,
+            onOpenSuite = { tab ->
+              soundManager.playSuccessChime()
+              islamicCornerInitialTab = tab
+              currentBottomTab = MainAppTab.ISLAMIC_CORNER
+            },
+            modifier = Modifier.fillMaxWidth()
+          )
+
+          Spacer(modifier = Modifier.height(14.dp))
+
+          // Hero Graphic Banner with glossy gradient, Islamic geometric art & CTA
           DashboardHeroBanner(
-            selectedLang = selectedLang
+            selectedLang = selectedLang,
+            onPracticeClick = {
+              soundManager.playSuccessChime()
+              currentBottomTab = MainAppTab.QURAN_LEARNING
+            }
           )
 
           Spacer(modifier = Modifier.height(20.dp))
@@ -316,7 +368,7 @@ fun HomeDashboardScreen(
               onPlayClick = {
                 soundManager.playSuccessChime()
                 if (gameMode.type == GameType.SHAPE_MASTER_PATH) {
-                  isShapeMasterRoadmapOpen = true
+                  currentBottomTab = MainAppTab.QURAN_LEARNING
                 } else {
                   activeGameModal = gameMode
                 }
@@ -493,47 +545,56 @@ fun HomeDashboardScreen(
 
           Spacer(modifier = Modifier.height(12.dp))
 
-          // 4. Interactive Letter Chart View
-          if (!isLetterGridView) {
-            // Horizontal Carousel
-            LazyRow(
-              contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-              horizontalArrangement = Arrangement.spacedBy(10.dp),
-              modifier = Modifier
-                .fillMaxWidth()
-                .testTag("letters_carousel")
-            ) {
-              items(ArabicAlphabetRepository.letters) { letter ->
-                LetterCardItem(
-                  letter = letter,
-                  selectedLang = selectedLang,
-                  onClick = {
-                    soundManager.speakArabicOrBeep(letter.letter)
-                    selectedLetterForDetail = letter
-                  }
-                )
+          // 4. Interactive Letter Chart View (Strict Right-to-Left RTL Layout)
+          CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            if (!isLetterGridView) {
+              // Horizontal Carousel (RTL)
+              LazyRow(
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .testTag("letters_carousel")
+              ) {
+                items(ArabicAlphabetRepository.letters) { letter ->
+                  LetterCardItem(
+                    letter = letter,
+                    selectedLang = selectedLang,
+                    onClick = {
+                      soundManager.speakArabicOrBeep(letter.letter)
+                      selectedLetterForDetail = letter
+                    }
+                  )
+                }
               }
-            }
-          } else {
-            // Grid View
-            @OptIn(ExperimentalLayoutApi::class)
-            FlowRow(
-              maxItemsInEachRow = 5,
-              horizontalArrangement = Arrangement.spacedBy(8.dp),
-              verticalArrangement = Arrangement.spacedBy(8.dp),
-              modifier = Modifier
-                .fillMaxWidth()
-                .testTag("letters_grid")
-            ) {
-              ArabicAlphabetRepository.letters.forEach { letter ->
-                LetterGridItem(
-                  letter = letter,
-                  selectedLang = selectedLang,
-                  onClick = {
-                    soundManager.speakArabicOrBeep(letter.letter)
-                    selectedLetterForDetail = letter
+            } else {
+              // 29 Arabic Letters Grid View (Strict RTL: Top-Right starts with Alif, followed by Ba to its left)
+              Column(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .testTag("letters_grid"),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+              ) {
+                val letterRows = remember { ArabicAlphabetRepository.letters.chunked(5) }
+                letterRows.forEach { rowLetters ->
+                  Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically
+                  ) {
+                    rowLetters.forEach { letter ->
+                      LetterGridItem(
+                        letter = letter,
+                        selectedLang = selectedLang,
+                        onClick = {
+                          soundManager.speakArabicOrBeep(letter.letter)
+                          selectedLetterForDetail = letter
+                        }
+                      )
+                    }
                   }
-                )
+                }
               }
             }
           }
@@ -543,6 +604,46 @@ fun HomeDashboardScreen(
       }
     }
   }
+  MainAppTab.QURAN_LEARNING -> {
+    ShapeMasterRoadmapScreen(
+      selectedLang = selectedLang,
+      onLanguageChange = onLanguageChange,
+      soundManager = soundManager,
+      showBackButton = false,
+      onBackToDashboard = { currentBottomTab = MainAppTab.HOME },
+      onLevelStatsUpdated = { _, _ ->
+        // Automatically persisted and synchronized in progressRepo
+      }
+    )
+  }
+  MainAppTab.ISLAMIC_CORNER -> {
+    IslamicSuiteScreen(
+      initialTab = islamicCornerInitialTab,
+      selectedLang = selectedLang,
+      showBackButton = false,
+      onBack = { currentBottomTab = MainAppTab.HOME }
+    )
+  }
+  MainAppTab.SETTINGS -> {
+    SettingsTabScreen(
+      selectedLang = selectedLang,
+      onLanguageChange = onLanguageChange,
+      userEmail = userEmail,
+      userLevel = userLevel,
+      userCoins = userCoins,
+      userStreak = userStreak,
+      soundManager = soundManager,
+      onOpenMakhrajVisualizer = {
+        letterForMakhrajVisualizer = ArabicAlphabetRepository.letters.first()
+      },
+      onSignOut = onSignOut
+    )
+  }
+}
+      }
+    }
+  }
+}
 
   // 4. Detail Pop-up showing 4 forms of selected letter
   selectedLetterForDetail?.let { letter ->
@@ -587,8 +688,7 @@ fun HomeDashboardScreen(
       selectedLang = selectedLang,
       soundManager = soundManager,
       onCoinsEarned = { earned ->
-        userCoins += earned
-        userStreak += 1
+        progressRepo.addCoins(earned)
       },
       onDismiss = { activeGameModal = null }
     )
@@ -608,13 +708,15 @@ fun UserStatsBarCard(
   modifier: Modifier = Modifier
 ) {
   Card(
-    shape = RoundedCornerShape(18.dp),
+    shape = RoundedCornerShape(16.dp),
     colors = CardDefaults.cardColors(
       containerColor = Color.White
     ),
-    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-    modifier = modifier.testTag("user_stats_bar")
+    modifier = modifier
+      .shadow(2.dp, RoundedCornerShape(16.dp), spotColor = Color(0x14000000))
+      .testTag("user_stats_bar")
   ) {
     Column(
       modifier = Modifier
@@ -684,9 +786,9 @@ fun UserStatsBarCard(
       ) {
         Text(
           text = when (selectedLang) {
-            "EN" -> "Level Progress"
-            "AR" -> "تقدم المستوى"
-            else -> "লেভেল অগ্রগতি"
+            "EN" -> "Daily Goal & Level Progress"
+            "AR" -> "الهدف اليومي وتقدم المستوى"
+            else -> "দৈনিক লক্ষ্য ও লেভেল অগ্রগতি"
           },
           style = TextStyle(
             fontSize = 11.sp,
@@ -704,16 +806,16 @@ fun UserStatsBarCard(
         )
       }
 
-      Spacer(modifier = Modifier.height(4.dp))
+      Spacer(modifier = Modifier.height(5.dp))
 
       LinearProgressIndicator(
         progress = { 0.64f },
         modifier = Modifier
           .fillMaxWidth()
-          .height(6.dp)
-          .clip(RoundedCornerShape(3.dp)),
+          .height(7.dp)
+          .clip(RoundedCornerShape(4.dp)),
         color = RoyalEmerald,
-        trackColor = Color(0xFFE2E8F0)
+        trackColor = Color(0xFFF1F5F9)
       )
     }
   }
@@ -760,69 +862,170 @@ fun StatChip(
 }
 
 /**
- * Hero Banner with high quality graphic aesthetic
+ * Ultra-crisp Islamic Geometric Art vector pattern overlay for banners
+ */
+@Composable
+fun IslamicGeometricOverlay(
+  modifier: Modifier = Modifier,
+  patternColor: Color = Color(0xFFF6E05E).copy(alpha = 0.16f)
+) {
+  Canvas(modifier = modifier) {
+    val step = 44.dp.toPx()
+    val starRadius = 14.dp.toPx()
+    val numCols = (size.width / step).toInt() + 2
+    val numRows = (size.height / step).toInt() + 2
+
+    for (c in 0..numCols) {
+      for (r in 0..numRows) {
+        val cx = c * step + (if (r % 2 == 1) step / 2f else 0f)
+        val cy = r * step
+
+        // Square 1
+        drawRect(
+          color = patternColor,
+          topLeft = Offset(cx - starRadius / 2f, cy - starRadius / 2f),
+          size = androidx.compose.ui.geometry.Size(starRadius, starRadius),
+          style = Stroke(width = 1.2.dp.toPx())
+        )
+        // Square 2 (rotated 45 degrees)
+        val halfD = (starRadius / 2f) * 1.414f
+        val pathRotated = Path().apply {
+          moveTo(cx, cy - halfD)
+          lineTo(cx + halfD, cy)
+          lineTo(cx, cy + halfD)
+          lineTo(cx - halfD, cy)
+          close()
+        }
+        drawPath(
+          path = pathRotated,
+          color = patternColor,
+          style = Stroke(width = 1.2.dp.toPx())
+        )
+        // Center focal star dot
+        drawCircle(
+          color = patternColor.copy(alpha = patternColor.alpha * 0.8f),
+          radius = 1.8.dp.toPx(),
+          center = Offset(cx, cy)
+        )
+      }
+    }
+  }
+}
+
+/**
+ * Hero Banner with glossy gradient, subtle Islamic geometric art & CTA button
  */
 @Composable
 fun DashboardHeroBanner(
-  selectedLang: String
+  selectedLang: String,
+  onPracticeClick: () -> Unit
 ) {
   Card(
     shape = RoundedCornerShape(20.dp),
     colors = CardDefaults.cardColors(containerColor = RoyalEmerald),
     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-    modifier = Modifier.fillMaxWidth()
+    border = BorderStroke(1.dp, Color(0xFFF6E05E).copy(alpha = 0.4f)),
+    modifier = Modifier
+      .fillMaxWidth()
+      .shadow(6.dp, RoundedCornerShape(20.dp), spotColor = Color(0x350A5C36))
   ) {
     Box(modifier = Modifier.fillMaxWidth()) {
+      // Glossy Gradient Background
+      Box(
+        modifier = Modifier
+          .fillMaxWidth()
+          .background(
+            Brush.linearGradient(
+              colors = listOf(
+                Color(0xFF063A22),
+                Color(0xFF0A5C36),
+                Color(0xFF0F7645)
+              )
+            )
+          )
+      )
+
       // Background Hero Graphic
       Image(
         painter = painterResource(id = R.drawable.img_dashboard_hero),
         contentDescription = "Dashboard Banner",
         modifier = Modifier
           .fillMaxWidth()
-          .height(130.dp),
+          .height(180.dp),
         contentScale = ContentScale.Crop,
-        alpha = 0.42f
+        alpha = 0.22f
       )
 
-      // Gradient overlay for readability
+      // Subtle Islamic geometric art pattern overlay
+      IslamicGeometricOverlay(
+        modifier = Modifier
+          .fillMaxWidth()
+          .height(180.dp),
+        patternColor = Color(0xFFF6E05E).copy(alpha = 0.16f)
+      )
+
+      // Glossy Light Sheen
       Box(
         modifier = Modifier
           .fillMaxWidth()
-          .height(130.dp)
+          .height(180.dp)
           .background(
-            Brush.horizontalGradient(
+            Brush.verticalGradient(
               colors = listOf(
-                RoyalEmerald.copy(alpha = 0.95f),
-                RoyalEmerald.copy(alpha = 0.65f)
+                Color.White.copy(alpha = 0.14f),
+                Color.Transparent,
+                Color.Black.copy(alpha = 0.22f)
               )
             )
           )
       )
 
-      // Banner Text Content
+      // Banner Text & Prominent CTA Content
       Column(
         modifier = Modifier
           .fillMaxWidth()
-          .padding(16.dp)
+          .padding(18.dp)
       ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          Text(text = "✨", fontSize = 16.sp)
-          Spacer(modifier = Modifier.width(6.dp))
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.SpaceBetween,
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          Box(
+            modifier = Modifier
+              .clip(RoundedCornerShape(8.dp))
+              .background(Color(0xFFF6E05E).copy(alpha = 0.22f))
+              .padding(horizontal = 8.dp, vertical = 3.dp)
+          ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+              Text(text = "✨", fontSize = 12.sp)
+              Spacer(modifier = Modifier.width(4.dp))
+              Text(
+                text = when (selectedLang) {
+                  "EN" -> "Daily Arabic Mastery"
+                  "AR" -> "إتقان العربية اليومي"
+                  else -> "দৈনিক আরবি শিক্ষা"
+                },
+                style = TextStyle(
+                  fontSize = 11.sp,
+                  fontWeight = FontWeight.Bold,
+                  color = Color(0xFFF6E05E)
+                )
+              )
+            }
+          }
+
           Text(
-            text = when (selectedLang) {
-              "EN" -> "Welcome, Learner!"
-              "AR" -> "أهلاً بك يا بطل!"
-              else -> "স্বাগতম, প্রিয় শিক্ষার্থী!"
-            },
+            text = "📖 29 حروف",
             style = TextStyle(
-              fontSize = 13.sp,
+              fontSize = 11.sp,
               fontWeight = FontWeight.SemiBold,
-              color = Color(0xFFF6E05E)
+              color = Color.White.copy(alpha = 0.88f)
             )
           )
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         Text(
           text = when (selectedLang) {
@@ -831,32 +1034,70 @@ fun DashboardHeroBanner(
             else -> "খেলার ছলে শিখুন আরবি হরফের রূপভেদ"
           },
           style = TextStyle(
-            fontSize = 17.sp,
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.White
+            color = Color.White,
+            letterSpacing = 0.3.sp
           )
         )
 
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         Text(
           text = when (selectedLang) {
-            "EN" -> "Choose a 3D game below or tap a letter to explore."
-            "AR" -> "اختر نمط لعب أدناه أو اضغط على أي حرف للاستكشاف."
-            else -> "নিচের যেকোনো গেম খেলুন অথবা হরফে ট্যাপ করে জানুন।"
+            "EN" -> "Step-by-step Quran reading journey from letters to full Ayahs."
+            "AR" -> "رحلة متدرجة لقراءة القرآن الكريم من الحروف حتى الآيات الكاملة."
+            else -> "ধাপে ধাপে হরফ থেকে শুরু করে পূর্ণাঙ্গ আয়াত তিলাওয়াত পর্যন্ত যাত্রা।"
           },
           style = TextStyle(
-            fontSize = 11.sp,
-            color = Color.White.copy(alpha = 0.9f)
-          )
+            fontSize = 11.5.sp,
+            color = Color.White.copy(alpha = 0.92f)
+          ),
+          maxLines = 2
         )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Prominent Call-to-action Button: "আজকের হরফ প্র্যাকটিস করুন"
+        Button(
+          onClick = onPracticeClick,
+          colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFFF6E05E),
+            contentColor = Color(0xFF063A22)
+          ),
+          shape = RoundedCornerShape(12.dp),
+          elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 8.dp),
+          modifier = Modifier
+            .testTag("hero_practice_letters_cta")
+            .shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color(0x60F6E05E))
+        ) {
+          Icon(
+            imageVector = Icons.Default.PlayArrow,
+            contentDescription = null,
+            tint = Color(0xFF063A22),
+            modifier = Modifier.size(18.dp)
+          )
+          Spacer(modifier = Modifier.width(6.dp))
+          Text(
+            text = when (selectedLang) {
+              "EN" -> "Practice Today's Letters ➔"
+              "AR" -> "تدرّب على حروف اليوم ➔"
+              else -> "আজকের হরফ প্র্যাকটিস করুন ➔"
+            },
+            style = TextStyle(
+              fontSize = 13.sp,
+              fontWeight = FontWeight.Bold,
+              color = Color(0xFF063A22)
+            )
+          )
+        }
       }
     }
   }
 }
 
 /**
- * 3. High-quality 3D-styled clickable Game Mode Card
+ * Modern Gamified Mode Card with rich vibrant gradients, clean micro-shadows & distinct icon containers
  */
 @Composable
 fun GameModeCard3D(
@@ -866,15 +1107,15 @@ fun GameModeCard3D(
   modifier: Modifier = Modifier
 ) {
   Card(
-    shape = RoundedCornerShape(20.dp),
+    shape = RoundedCornerShape(18.dp),
     colors = CardDefaults.cardColors(containerColor = Color.White),
     elevation = CardDefaults.cardElevation(
-      defaultElevation = 4.dp,
-      pressedElevation = 8.dp
+      defaultElevation = 2.dp,
+      pressedElevation = 6.dp
     ),
-    border = BorderStroke(1.5.dp, gameMode.primaryColor.copy(alpha = 0.25f)),
+    border = BorderStroke(1.dp, gameMode.primaryColor.copy(alpha = 0.22f)),
     modifier = modifier
-      .shadow(6.dp, RoundedCornerShape(20.dp), spotColor = gameMode.primaryColor.copy(alpha = 0.35f))
+      .shadow(3.dp, RoundedCornerShape(18.dp), spotColor = gameMode.primaryColor.copy(alpha = 0.28f))
       .clickable { onPlayClick() }
       .testTag("game_card_${gameMode.type.name}")
   ) {
@@ -884,19 +1125,19 @@ fun GameModeCard3D(
         .background(
           Brush.linearGradient(
             colors = listOf(
-              gameMode.primaryColor.copy(alpha = 0.08f),
+              gameMode.primaryColor.copy(alpha = 0.07f),
               Color.White,
-              gameMode.secondaryColor.copy(alpha = 0.04f)
+              gameMode.secondaryColor.copy(alpha = 0.03f)
             )
           )
         )
-        .padding(16.dp)
+        .padding(15.dp)
     ) {
       Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
       ) {
-        // 3D Styled Icon container
+        // Distinct High-Contrast 3D Icon Container
         Box(
           modifier = Modifier
             .size(56.dp)
@@ -906,8 +1147,8 @@ fun GameModeCard3D(
                 colors = listOf(gameMode.primaryColor, gameMode.secondaryColor)
               )
             )
-            .border(2.dp, gameMode.accentColor.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
-            .shadow(4.dp, RoundedCornerShape(16.dp)),
+            .border(2.dp, Color.White.copy(alpha = 0.65f), RoundedCornerShape(16.dp))
+            .shadow(4.dp, RoundedCornerShape(16.dp), spotColor = gameMode.primaryColor.copy(alpha = 0.4f)),
           contentAlignment = Alignment.Center
         ) {
           Text(
@@ -920,12 +1161,12 @@ fun GameModeCard3D(
 
         Column(modifier = Modifier.weight(1f)) {
           Row(verticalAlignment = Alignment.CenterVertically) {
-            // Badge tag
+            // Badge capsule
             Box(
               modifier = Modifier
                 .clip(RoundedCornerShape(6.dp))
                 .background(gameMode.primaryColor)
-                .padding(horizontal = 6.dp, vertical = 2.dp)
+                .padding(horizontal = 7.dp, vertical = 2.dp)
             ) {
               Text(
                 text = gameMode.getBadge(selectedLang),
@@ -940,7 +1181,7 @@ fun GameModeCard3D(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Star rating indicator
+            // Star Rating
             Row {
               repeat(gameMode.starsCount) {
                 Icon(
@@ -958,7 +1199,7 @@ fun GameModeCard3D(
           Text(
             text = gameMode.getTitle(selectedLang),
             style = TextStyle(
-              fontSize = 17.sp,
+              fontSize = 16.sp,
               fontWeight = FontWeight.Bold,
               color = Color(0xFF0F172A)
             ),
@@ -969,8 +1210,8 @@ fun GameModeCard3D(
           Text(
             text = gameMode.getSubtitle(selectedLang),
             style = TextStyle(
-              fontSize = 11.sp,
-              color = Color(0xFF475569),
+              fontSize = 11.5.sp,
+              color = Color(0xFF64748B),
               lineHeight = 15.sp
             ),
             maxLines = 2,
@@ -978,39 +1219,43 @@ fun GameModeCard3D(
           )
         }
 
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(10.dp))
 
-        // 3D-styled Action button
-        Button(
-          onClick = onPlayClick,
-          shape = RoundedCornerShape(12.dp),
-          colors = ButtonDefaults.buttonColors(
-            containerColor = gameMode.primaryColor
-          ),
-          contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+        // Vibrant Play Button Pill
+        Box(
           modifier = Modifier
-            .shadow(3.dp, RoundedCornerShape(12.dp), spotColor = gameMode.primaryColor)
-            .testTag("play_btn_${gameMode.type.name}")
-        ) {
-          Icon(
-            imageVector = Icons.Default.PlayArrow,
-            contentDescription = "Play",
-            tint = Color.White,
-            modifier = Modifier.size(16.dp)
-          )
-          Spacer(modifier = Modifier.width(4.dp))
-          Text(
-            text = when (selectedLang) {
-              "EN" -> "Play"
-              "AR" -> "العب"
-              else -> "খেলুন"
-            },
-            style = TextStyle(
-              fontSize = 13.sp,
-              fontWeight = FontWeight.Bold,
-              color = Color.White
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+              Brush.horizontalGradient(
+                listOf(gameMode.primaryColor, gameMode.secondaryColor)
+              )
             )
-          )
+            .clickable { onPlayClick() }
+            .padding(horizontal = 11.dp, vertical = 8.dp),
+          contentAlignment = Alignment.Center
+        ) {
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+              text = when (selectedLang) {
+                "EN" -> "PLAY"
+                "AR" -> "العب"
+                else -> "খেলুন"
+              },
+              style = TextStyle(
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                letterSpacing = 0.5.sp
+              )
+            )
+            Spacer(modifier = Modifier.width(3.dp))
+            Icon(
+              imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+              contentDescription = null,
+              tint = Color.White,
+              modifier = Modifier.size(12.dp)
+            )
+          }
         }
       }
     }
@@ -1060,29 +1305,36 @@ fun LetterCardItem(
           fontWeight = FontWeight.Bold,
           color = RoyalEmerald,
           fontFamily = FontFamily.Serif
-        )
+        ),
+        textAlign = TextAlign.Center
       )
 
       Spacer(modifier = Modifier.height(2.dp))
 
-      Text(
-        text = letter.getName(selectedLang),
-        style = TextStyle(
-          fontSize = 11.sp,
-          fontWeight = FontWeight.Medium,
-          color = Color(0xFF1E293B)
-        ),
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis
-      )
-
-      Text(
-        text = letter.phonetic,
-        style = TextStyle(
-          fontSize = 10.sp,
-          color = Color(0xFF64748B)
+      CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Text(
+          text = letter.getName(selectedLang),
+          style = TextStyle(
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFF1E293B)
+          ),
+          textAlign = TextAlign.Center,
+          modifier = Modifier.fillMaxWidth(),
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis
         )
-      )
+
+        Text(
+          text = letter.phonetic,
+          style = TextStyle(
+            fontSize = 10.sp,
+            color = Color(0xFF64748B)
+          ),
+          textAlign = TextAlign.Center,
+          modifier = Modifier.fillMaxWidth()
+        )
+      }
     }
   }
 }
@@ -1097,39 +1349,51 @@ fun LetterGridItem(
   onClick: () -> Unit
 ) {
   Card(
-    shape = RoundedCornerShape(14.dp),
+    shape = RoundedCornerShape(16.dp),
     colors = CardDefaults.cardColors(containerColor = Color.White),
-    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+    elevation = CardDefaults.cardElevation(
+      defaultElevation = 2.5.dp,
+      pressedElevation = 6.dp
+    ),
+    border = BorderStroke(1.2.dp, Color(0xFFE2E8F0)),
     modifier = Modifier
       .size(64.dp)
+      .shadow(2.dp, RoundedCornerShape(16.dp), spotColor = RoyalEmerald.copy(alpha = 0.18f))
       .clickable { onClick() }
       .testTag("letter_grid_${letter.id}")
   ) {
     Column(
-      modifier = Modifier.fillMaxSize(),
+      modifier = Modifier
+        .fillMaxSize()
+        .padding(horizontal = 2.dp, vertical = 3.dp),
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.Center
     ) {
       Text(
         text = letter.letter,
         style = TextStyle(
-          fontSize = 24.sp,
+          fontSize = 25.sp,
           fontWeight = FontWeight.Bold,
           color = RoyalEmerald,
           fontFamily = FontFamily.Serif
-        )
-      )
-      Text(
-        text = letter.getName(selectedLang),
-        style = TextStyle(
-          fontSize = 9.sp,
-          fontWeight = FontWeight.Medium,
-          color = Color(0xFF475569)
         ),
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis
+        textAlign = TextAlign.Center
       )
+      Spacer(modifier = Modifier.height(1.dp))
+      CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Text(
+          text = letter.getName(selectedLang),
+          style = TextStyle(
+            fontSize = 9.5.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF334155)
+          ),
+          textAlign = TextAlign.Center,
+          modifier = Modifier.fillMaxWidth(),
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis
+        )
+      }
     }
   }
 }

@@ -102,10 +102,22 @@ class SoundManager(private val context: Context) {
     try {
       textToSpeech = TextToSpeech(context.applicationContext) { status ->
         if (status == TextToSpeech.SUCCESS) {
-          val locale = Locale("ar")
-          val result = textToSpeech?.setLanguage(locale)
-          isTtsReady = result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED
-          applyVoiceProfile(currentVoiceGender)
+          val arLocales = listOf(
+            Locale("ar"),
+            Locale("ar", "SA"),
+            Locale("ar", "EG"),
+            Locale.ROOT
+          )
+          for (loc in arLocales) {
+            val result = textToSpeech?.setLanguage(loc)
+            if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
+              isTtsReady = true
+              break
+            }
+          }
+          if (isTtsReady) {
+            applyVoiceProfile(currentVoiceGender)
+          }
         }
       }
     } catch (_: Exception) {
@@ -241,20 +253,21 @@ class SoundManager(private val context: Context) {
     gender: VoiceGender,
     onComplete: (() -> Unit)?
   ): Boolean {
-    val cleanLetter = when (letterGlyph.trim()) {
-      "ا" -> "alif"
+    val stripped = letterGlyph.replace("\u0640", "").trim()
+    val cleanLetter = when (stripped) {
+      "ا", "أ", "إ", "آ", "ٱ" -> "alif"
       "ب" -> "ba"
-      "ت" -> "ta"
+      "ت", "ة" -> "ta"
       "ث" -> "tha"
       "ج" -> "jim"
       "ح" -> "ha"
       "خ" -> "kha"
-      "د" -> "dal"
+      "দ", "د" -> "dal"
       "ذ" -> "dhal"
       "ر" -> "ra"
       "ز" -> "zay"
-      "س" -> "sin"
-      "ش" -> "shin"
+      "স", "س" -> "sin"
+      "শ", "ش" -> "shin"
       "ص" -> "sad"
       "ض" -> "dad"
       "ط" -> "taa"
@@ -269,8 +282,8 @@ class SoundManager(private val context: Context) {
       "ن" -> "nun"
       "و" -> "waw"
       "هـ", "ه" -> "haa"
-      "ء" -> "hamza"
-      "ي" -> "ya"
+      "ء", "ئ", "ؤ" -> "hamza"
+      "ي", "ى" -> "ya"
       else -> null
     } ?: return false
 
@@ -310,10 +323,12 @@ class SoundManager(private val context: Context) {
   /**
    * Classical vocalization with Tajweed and Sukoon (without Nunation/Tanween).
    * Authentically suited for Bengali Noorani Qaida recitation learning.
+   * Cleans Tatweel / Kashida so initial/medial/final forms vocalize accurately.
    */
   private fun getClassicalArabicLetterPronunciation(glyph: String): String {
-    return when (glyph.trim()) {
-      "ا" -> "أَلِفْ"
+    val stripped = glyph.replace("\u0640", "").trim()
+    return when (stripped) {
+      "ا", "أ", "إ", "آ", "ٱ" -> "أَلِفْ"
       "ب" -> "بَاءْ"
       "ت" -> "تَاءْ"
       "ث" -> "ثَاءْ"
@@ -339,9 +354,9 @@ class SoundManager(private val context: Context) {
       "م" -> "مِيمْ"
       "ن" -> "نُونْ"
       "و" -> "وَاوْ"
-      "هـ", "ه" -> "هَاءْ"
-      "ء" -> "هَمْزَةْ"
-      "ي" -> "يَاءْ"
+      "هـ", "ه", "ة" -> "هَاءْ"
+      "ء", "ئ", "ؤ" -> "هَمْزَةْ"
+      "ي", "ى" -> "يَاءْ"
       else -> glyph
     }
   }

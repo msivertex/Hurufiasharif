@@ -626,7 +626,182 @@ object ShapeMasterRoadmapRepository {
             explanationAr = "تهانينا! لقد أتقنت جميع أشكال الحروف العربية بنجاح!"
           )
         )
+      ),
+
+      // Level 11: Word Building & Tashdeed (Stage 4 Checkpoint)
+      RoadmapLevel(
+        id = 11,
+        titleEn = "Level 11: Word Building & Tashdeed",
+        titleBn = "লেভেল ১১: শব্দ গঠন ও তাসদীদ",
+        titleAr = "المستوى ١١: تكوين الكلمات والتشديد",
+        subtitleEn = "Connecting letters into words with double-stress Tashdeed (ّ)",
+        subtitleBn = "হরফ যুক্ত করে শব্দ গঠন ও তাসদীদ (ّ) এর দ্বিত্ব উচ্চারণ",
+        subtitleAr = "تركيب الحروف لتكوين الكلمات القرآنية مع علامة الشدة",
+        iconEmoji = "🏗️",
+        nodeColor = Color(0xFFEA580C), // Orange
+        isCheckpoint = false,
+        rewardStars = 50,
+        rewardXp = 150,
+        questions = listOf(
+          ShapeQuizQuestion(
+            id = "q11_1",
+            type = QuizQuestionType.SHAPE_IDENTIFICATION,
+            targetLetter = ArabicAlphabetRepository.letters[1], // Baa
+            targetFormType = FormType.MEDIAL,
+            promptEn = "Word Building: In the Quranic word 'رَبِّ' (Rabbi), which sign indicates double emphasis on Baa?",
+            promptBn = "শব্দ গঠন: কুরআনিক শব্দ 'رَبِّ' (রব্বি)-তে 'বা' হরফটির দ্বিত্ব জোর নির্দেশ করে কোন চিহ্নটি?",
+            promptAr = "تكوين الكلمات: في الكلمة القرآنية 'رَبِّ'، ما هي العلامة التي تدل على تشديد الباء؟",
+            options = listOf(
+              ShapeOption("ّ (Tashdeed)", FormType.ISOLATED, "Tashdeed", true),
+              ShapeOption("ْ (Sukoon)", FormType.ISOLATED, "Sukoon", false),
+              ShapeOption("ً (Tanween)", FormType.ISOLATED, "Tanween", false),
+              ShapeOption("ٰ (Short Alif)", FormType.ISOLATED, "Short Alif", false)
+            ),
+            explanationEn = "Tashdeed (ّ) doubles the consonant sound with firm emphasis: Rab-bi!",
+            explanationBn = "তাসদীদ (ّ) হরফটিকে দুইবার শক্তভাবে উচ্চারণে সহায়তা করে: রব-বি!",
+            explanationAr = "الشدة (ّ) تضاعف الحرف بنطق مكرر قوي ومؤكد!"
+          ),
+          ShapeQuizQuestion(
+            id = "q11_2",
+            type = QuizQuestionType.MATCHING_PAIRS,
+            targetLetter = ArabicAlphabetRepository.letters[0],
+            targetFormType = FormType.INITIAL,
+            promptEn = "Match isolated letters with their fused Quranic word form:",
+            promptBn = "পৃথক হরফগুলোকে একত্রিত হয়ে গঠিত কুরআনিক শব্দের সাথে মেলান:",
+            promptAr = "طابق الحروف المنفصلة مع الكلمة القرآنية المتصلة الناتجة:",
+            pairs = listOf(
+              MatchingPairItem("p11_1", "ك + ت + ب", "كَتَبَ", FormType.INITIAL, "Kataba"),
+              MatchingPairItem("p11_2", "ق + ل", "قُلْ", FormType.INITIAL, "Qul"),
+              MatchingPairItem("p11_3", "ح + م + د", "حَمْدٌ", FormType.INITIAL, "Hamdun")
+            ),
+            explanationEn = "Arabic letters connect smoothly on baseline to form authentic Quranic words!",
+            explanationBn = "আরবি হরফগুলো একে অপরের সাথে বাহু প্রসারিত করে পূর্ণাঙ্গ কুরআনিক শব্দ গঠন করে।",
+            explanationAr = "تتصل الحروف بانسيابية لتكوين الكلمات القرآنية العظيمة!"
+          )
+        )
+      ),
+
+      // Level 12: Full Quranic Verse Recitation (Stage 5 Grand Checkpoint)
+      RoadmapLevel(
+        id = 12,
+        titleEn = "Level 12: Full Quranic Verse Reading",
+        titleBn = "লেভেল ১২: সম্পূর্ণ আয়াত তিলাওয়াত",
+        titleAr = "المستوى ١٢: تلاوة الآيات القرآنية الكاملة",
+        subtitleEn = "Recite complete sacred Ayahs with Tajweed and fluent connection",
+        subtitleBn = "তাজবীদ ও তারতীলের সাথে সম্পূর্ণ কুরআনিক আয়াত পাঠ",
+        subtitleAr = "تلاوة آيات قرآنية كاملة مع مراعاة أحكام التجويد والوصل",
+        iconEmoji = "📖",
+        nodeColor = Color(0xFFD97706), // Royal Gold
+        isCheckpoint = true,
+        rewardStars = 150,
+        rewardXp = 350,
+        questions = listOf(
+          ShapeQuizQuestion(
+            id = "q12_1",
+            type = QuizQuestionType.SHAPE_IDENTIFICATION,
+            targetLetter = ArabicAlphabetRepository.letters[0],
+            targetFormType = FormType.INITIAL,
+            promptEn = "Quran Verse Reading: Identify the first letter of 'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ':",
+            promptBn = "সম্পূর্ণ আয়াত পাঠ: 'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ' (বিসমিল্লাহ)-এর প্রথম হরফ কোনটি?",
+            promptAr = "قراءة الآية: ما هو الحرف الأول في 'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ'؟",
+            options = listOf(
+              ShapeOption("بـ (Baa with Kasra)", FormType.INITIAL, "Bi", true),
+              ShapeOption("سـ (Seen)", FormType.MEDIAL, "Seen", false),
+              ShapeOption("م (Meem)", FormType.FINAL, "Meem", false),
+              ShapeOption("ا (Alif)", FormType.ISOLATED, "Alif", false)
+            ),
+            explanationEn = "'بِسْمِ' begins with connected Baa with Kasra: 'Bi' joined to 'Seen'!",
+            explanationBn = "'بِسْمِ' শুরু হয় যেরযুক্ত প্রারম্ভিক 'বা' হরফ দিয়ে, যা 'সীন'-এর সাথে যুক্ত থাকে!",
+            explanationAr = "تبدأ البسملة بحرف الباء المكسورة المتصلة بحرف السين الساكنة: 'بِسْمِ'."
+          ),
+          ShapeQuizQuestion(
+            id = "q12_2",
+            type = QuizQuestionType.SHAPE_IDENTIFICATION,
+            targetLetter = ArabicAlphabetRepository.letters[20], // Qaaf
+            targetFormType = FormType.INITIAL,
+            promptEn = "Surah Al-Ikhlas Verse 1: Which letter opens 'قُلْ هُوَ ٱللَّهُ أَحَدٌ'?",
+            promptBn = "সূরা আল-ইখলাস আয়াত ১: 'قُلْ هُوَ ٱللَّهُ أَحَدٌ' কোন হরফ দিয়ে শুরু হয়েছে?",
+            promptAr = "سورة الإخلاص: ما هو الحرف الذي تبدأ به الآية 'قُلْ هُوَ ٱللَّهُ أَحَدٌ'؟",
+            options = listOf(
+              ShapeOption("قـ (Qaaf with Damma)", FormType.INITIAL, "Qul", true),
+              ShapeOption("ل (Laam with Sukoon)", FormType.FINAL, "Lam", false),
+              ShapeOption("هـ (Haa)", FormType.INITIAL, "Huwa", false),
+              ShapeOption("أ (Alif)", FormType.ISOLATED, "Ahad", false)
+            ),
+            explanationEn = "Qaaf with Damma connects to Laam with Sukoon to make 'Qul' (Say)!",
+            explanationBn = "পেশযুক্ত 'ক্বাফ' সাকিনযুক্ত 'লাম'-এর সাথে যুক্ত হয়ে 'ক্বুল' (বলুন) উচ্চারিত হয়!",
+            explanationAr = "القاف المضمومة تتصل باللام الساكنة لتنطق 'قُلْ'!"
+          )
+        )
       )
     )
   }
+
+  val stages: List<QuranPedagogyStage> = listOf(
+    QuranPedagogyStage(
+      id = QuranStageId.STAGE_1_LETTERS_SHAPES,
+      stageNumber = 1,
+      titleEn = "Stage 1: Letters & Shapes",
+      titleBn = "ধাপ ১: হরফ ও রূপসমূহ",
+      titleAr = "المرحلة الأولى: الحروف والأشكال",
+      subtitleEn = "Master all 29 letters and their 4 connecting forms",
+      subtitleBn = "২৯টি আরবি হরফের একক ও ৪টি রূপ চেনা",
+      subtitleAr = "إتقان الحروف الـ ٢٩ وأشكالها الأربعة في الكلمة",
+      iconEmoji = "🔤",
+      color = Color(0xFF0A5C36), // Emerald
+      levelIds = listOf(1, 2, 3, 4)
+    ),
+    QuranPedagogyStage(
+      id = QuranStageId.STAGE_2_HARAKAT_TANWEEN,
+      stageNumber = 2,
+      titleEn = "Stage 2: Harakat & Tanween",
+      titleBn = "ধাপ ২: হরকত ও তানভীন",
+      titleAr = "المرحلة الثانية: الحركات والتنوين",
+      subtitleEn = "Short vowels (Fatha, Kasra, Damma) and Tanween sounds",
+      subtitleBn = "যবর, যের, পেশ এবং দুই যবর, দুই যের, দুই পেশ (তানভীন)",
+      subtitleAr = "الفتحة والكسرة والضمة والتنوين بأنواعه الثلاثة",
+      iconEmoji = "🎵",
+      color = Color(0xFF0284C7), // Sky Blue
+      levelIds = listOf(5, 6)
+    ),
+    QuranPedagogyStage(
+      id = QuranStageId.STAGE_3_SUKOON_MAD,
+      stageNumber = 3,
+      titleEn = "Stage 3: Sukoon & Mad",
+      titleBn = "ধাপ ৩: সুকুন ও মাদ্দ",
+      titleAr = "المرحلة الثالثة: السكون والمدود",
+      subtitleEn = "Resting consonants (Jazm) and prolonged elongation (Madd)",
+      subtitleBn = "সাকিন / জযম এবং মাদ্দের হরফে দীর্ঘ স্বর টানা",
+      subtitleAr = "علامة السكون (الجزم) وحروف المد الثلاثة والإطالة الصوتية",
+      iconEmoji = "🌊",
+      color = Color(0xFF7C3AED), // Purple
+      levelIds = listOf(7, 8)
+    ),
+    QuranPedagogyStage(
+      id = QuranStageId.STAGE_4_WORD_BUILDING,
+      stageNumber = 4,
+      titleEn = "Stage 4: Word Building & Tashdeed",
+      titleBn = "ধাপ ৪: শব্দ গঠন ও তাসদীদ",
+      titleAr = "المرحلة الرابعة: تكوين الكلمات والتشديد",
+      subtitleEn = "Combine letters into words with double consonants (Tashdeed)",
+      subtitleBn = "হরফ যুক্ত করে পূর্ণ শব্দ গঠন এবং তাসদীদের দ্বিত্ব উচ্চারণ",
+      subtitleAr = "دمج الحروف لتكوين الكلمات القرآنية وأحكام الشدة",
+      iconEmoji = "🏗️",
+      color = Color(0xFFEA580C), // Orange
+      levelIds = listOf(9, 10, 11)
+    ),
+    QuranPedagogyStage(
+      id = QuranStageId.STAGE_5_FULL_VERSE,
+      stageNumber = 5,
+      titleEn = "Stage 5: Full Verse Reading",
+      titleBn = "ধাপ ৫: সম্পূর্ণ আয়াত তিলাওয়াত",
+      titleAr = "المرحلة الخامسة: قراءة الآيات الكاملة",
+      subtitleEn = "Recite complete Quranic verses with foundational Tajweed",
+      subtitleBn = "সহীহ তিলাওয়াতে সম্পূর্ণ আয়াত ও সূরা পাঠ (তাজবীদসহ)",
+      subtitleAr = "تلاوة آيات وسور قرآنية كاملة مع تطبيق أحكام التجويد",
+      iconEmoji = "📖",
+      color = Color(0xFFD97706), // Gold
+      levelIds = listOf(12)
+    )
+  )
 }

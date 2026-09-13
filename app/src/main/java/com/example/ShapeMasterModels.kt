@@ -178,3 +178,37 @@ data class LevelProgress(
   val stars: Int, // 0 to 3
   val highScore: Int
 )
+
+enum class QuranStageId {
+  STAGE_1_LETTERS_SHAPES,
+  STAGE_2_HARAKAT_TANWEEN,
+  STAGE_3_SUKOON_MAD,
+  STAGE_4_WORD_BUILDING,
+  STAGE_5_FULL_VERSE
+}
+
+data class QuranPedagogyStage(
+  val id: QuranStageId,
+  val stageNumber: Int,
+  val titleEn: String,
+  val titleBn: String,
+  val titleAr: String,
+  val subtitleEn: String,
+  val subtitleBn: String,
+  val subtitleAr: String,
+  val iconEmoji: String,
+  val color: Color,
+  val levelIds: List<Int>
+) {
+  fun getTitle(lang: String): String = when (lang) {
+    "EN" -> titleEn
+    "AR" -> titleAr
+    else -> titleBn
+  }
+
+  fun getSubtitle(lang: String): String = when (lang) {
+    "EN" -> subtitleEn
+    "AR" -> subtitleAr
+    else -> subtitleBn
+  }
+}

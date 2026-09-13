@@ -14,6 +14,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,6 +28,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -74,6 +77,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
@@ -93,26 +97,22 @@ fun ShapeMasterRoadmapScreen(
   selectedLang: String,
   onLanguageChange: (String) -> Unit,
   soundManager: SoundManager,
-  onBackToDashboard: () -> Unit,
+  showBackButton: Boolean = false,
+  onBackToDashboard: () -> Unit = {},
   onLevelStatsUpdated: (starsAdded: Int, xpAdded: Int) -> Unit
 ) {
   val layoutDirection = if (selectedLang == "AR") LayoutDirection.Rtl else LayoutDirection.Ltr
   var showLanguageMenu by remember { mutableStateOf(false) }
 
-  // Level progress tracking: Level 1 is unlocked initially
-  val unlockedLevels = remember {
-    mutableStateMapOf<Int, Boolean>().apply {
-      put(1, true)
-    }
-  }
-
-  val levelStars = remember {
-    mutableStateMapOf<Int, Int>()
-  }
+  val context = LocalContext.current
+  val progressRepo = remember { OfflineProgressRepository.getInstance(context) }
+  val unlockedLevels = progressRepo.unlockedLevels
+  val levelStars = progressRepo.levelStars
 
   var selectedLevelForGame by remember { mutableStateOf<RoadmapLevel?>(null) }
   var previewLevelDialog by remember { mutableStateOf<RoadmapLevel?>(null) }
   var totalStarsEarned by remember { mutableIntStateOf(0) }
+  var selectedStageId by remember { mutableStateOf<QuranStageId?>(null) }
 
   // If a game session is active, render ShapeMasterGameScreen
   if (selectedLevelForGame != null) {
@@ -123,9 +123,7 @@ fun ShapeMasterRoadmapScreen(
       onExit = { selectedLevelForGame = null },
       onLevelCompleted = { stars, xp, coins ->
         val currentLevelId = selectedLevelForGame!!.id
-        levelStars[currentLevelId] = maxOf(levelStars[currentLevelId] ?: 0, stars)
-        // Unlock next level!
-        unlockedLevels[currentLevelId + 1] = true
+        progressRepo.completeLevel(currentLevelId, stars, xp, coins)
         totalStarsEarned += coins
         onLevelStatsUpdated(coins, xp)
         selectedLevelForGame = null
@@ -143,9 +141,9 @@ fun ShapeMasterRoadmapScreen(
             Column {
               Text(
                 text = when (selectedLang) {
-                  "EN" -> "Shape Master Path"
-                  "AR" -> "مسار إتقان الأشكال"
-                  else -> "শেপ মাস্টার রোডম্যাপ"
+                  "EN" -> "Quran & Qaida Progression"
+                  "AR" -> "تعلم القرآن والقاعدة"
+                  else -> "কুরআন লার্নিং ও কায়দা"
                 },
                 style = TextStyle(
                   fontWeight = FontWeight.Bold,
@@ -155,9 +153,9 @@ fun ShapeMasterRoadmapScreen(
               )
               Text(
                 text = when (selectedLang) {
-                  "EN" -> "Master Arabic letter forms step-by-step"
-                  "AR" -> "أتقن أشكال الحروف خطوة بخطوة"
-                  else -> "ধাপে ধাপে প্রতিটি রূপ আয়ত্ত করুন"
+                  "EN" -> "Step-by-step Quran & Qaida learning roadmap"
+                  "AR" -> "مسار تعلم القرآن والقاعدة خطوة بخطوة"
+                  else -> "ধাপে ধাপে কায়দা ও কুরআন শিক্ষার রোডম্যাপ"
                 },
                 style = TextStyle(
                   color = Color.White.copy(alpha = 0.85f),
@@ -167,15 +165,17 @@ fun ShapeMasterRoadmapScreen(
             }
           },
           navigationIcon = {
-            IconButton(
-              onClick = onBackToDashboard,
-              modifier = Modifier.testTag("roadmap_back_btn")
-            ) {
-              Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = Color.White
-              )
+            if (showBackButton) {
+              IconButton(
+                onClick = onBackToDashboard,
+                modifier = Modifier.testTag("roadmap_back_btn")
+              ) {
+                Icon(
+                  imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                  contentDescription = "Back",
+                  tint = Color.White
+                )
+              }
             }
           },
           colors = TopAppBarDefaults.topAppBarColors(
@@ -266,7 +266,16 @@ fun ShapeMasterRoadmapScreen(
           // Top Roadmap Intro Card
           RoadmapHeaderCard(selectedLang = selectedLang)
 
-          Spacer(modifier = Modifier.height(16.dp))
+          Spacer(modifier = Modifier.height(12.dp))
+
+          // 5-Stage Quranic Pedagogy Progress Selector
+          QuranPedagogyStageSelector(
+            selectedStageId = selectedStageId,
+            onStageSelect = { selectedStageId = it },
+            selectedLang = selectedLang
+          )
+
+          Spacer(modifier = Modifier.height(14.dp))
 
           // Duolingo-style Winding Stepping Stones Path
           DuolingoWindingPath(
@@ -274,6 +283,7 @@ fun ShapeMasterRoadmapScreen(
             unlockedLevels = unlockedLevels,
             levelStars = levelStars,
             selectedLang = selectedLang,
+            selectedStageId = selectedStageId,
             onNodeClick = { level ->
               val isUnlocked = unlockedLevels[level.id] == true
               if (isUnlocked) {
@@ -290,9 +300,7 @@ fun ShapeMasterRoadmapScreen(
           // Dev helper button to unlock all levels for rapid evaluation
           TextButton(
             onClick = {
-              ShapeMasterRoadmapRepository.levels.forEach { lvl ->
-                unlockedLevels[lvl.id] = true
-              }
+              progressRepo.unlockAllLevelsForTesting()
             },
             modifier = Modifier.testTag("unlock_all_levels_btn")
           ) {
@@ -335,11 +343,13 @@ fun ShapeMasterRoadmapScreen(
 @Composable
 fun RoadmapHeaderCard(selectedLang: String) {
   Card(
-    shape = RoundedCornerShape(18.dp),
+    shape = RoundedCornerShape(16.dp),
     colors = CardDefaults.cardColors(containerColor = Color.White),
-    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-    modifier = Modifier.fillMaxWidth()
+    modifier = Modifier
+      .fillMaxWidth()
+      .shadow(2.dp, RoundedCornerShape(16.dp), spotColor = Color(0x14000000))
   ) {
     Row(
       modifier = Modifier
@@ -350,8 +360,9 @@ fun RoadmapHeaderCard(selectedLang: String) {
       Box(
         modifier = Modifier
           .size(48.dp)
-          .clip(CircleShape)
-          .background(RoyalEmerald.copy(alpha = 0.12f)),
+          .clip(RoundedCornerShape(14.dp))
+          .background(RoyalEmerald.copy(alpha = 0.12f))
+          .border(1.dp, RoyalEmerald.copy(alpha = 0.25f), RoundedCornerShape(14.dp)),
         contentAlignment = Alignment.Center
       ) {
         Text(text = "🗺️", fontSize = 24.sp)
@@ -360,23 +371,23 @@ fun RoadmapHeaderCard(selectedLang: String) {
       Column(modifier = Modifier.weight(1f)) {
         Text(
           text = when (selectedLang) {
-            "EN" -> "Journey Through Letter Shapes"
-            "AR" -> "رحلة استكشاف أشكال الحروف"
-            else -> "হরফের রূপভেদ আবিষ্কারের যাত্রা"
+            "EN" -> "Quranic Reading Path (5 Stages)"
+            "AR" -> "مسار قراءة القرآن الكريم (٥ مراحل)"
+            else -> "কুরআন পাঠের রোডম্যাপ (৫টি স্তর)"
           },
           style = TextStyle(
-            fontSize = 14.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             color = RoyalEmerald
           )
         )
         Text(
           text = when (selectedLang) {
-            "EN" -> "Tap each stepping stone to unlock Arabic mastery"
-            "AR" -> "انقر على كل حجر خطوة لفتح الإتقان العربي"
-            else -> "প্রতিটি ধাপে ট্যাপ করে নতুন নতুন রূপভেদ শিখুন"
+            "EN" -> "12 Levels from single letter forms to full Ayah recitation"
+            "AR" -> "١٢ مستوى متدرج من رسم الحروف حتى تلاوة الآيات"
+            else -> "১২টি লেভেলে হরফের রূপভেদ থেকে পূর্ণাঙ্গ আয়াত তিলাওয়াত"
           },
-          style = TextStyle(fontSize = 11.sp, color = Color(0xFF64748B))
+          style = TextStyle(fontSize = 11.5.sp, color = Color(0xFF64748B))
         )
       }
     }
@@ -384,8 +395,209 @@ fun RoadmapHeaderCard(selectedLang: String) {
 }
 
 /**
- * Duolingo-style Winding Stepping Stones Path
- * Generates an alternating S-curve road with stepping stones, glowing pulse, and checkpoints
+ * 5-Stage Quranic Pedagogy Progress Selector Bar
+ */
+@Composable
+fun QuranPedagogyStageSelector(
+  selectedStageId: QuranStageId?,
+  onStageSelect: (QuranStageId?) -> Unit,
+  selectedLang: String
+) {
+  Column(modifier = Modifier.fillMaxWidth()) {
+    Row(
+      modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 2.dp),
+      horizontalArrangement = Arrangement.SpaceBetween,
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Text(
+        text = when (selectedLang) {
+          "EN" -> "5 Pedagogy Stages"
+          "AR" -> "مراحل التعلّم الخمسة"
+          else -> "৫টি ধারাবাহিক স্তর"
+        },
+        style = TextStyle(
+          fontSize = 12.sp,
+          fontWeight = FontWeight.Bold,
+          color = Color(0xFF334155)
+        )
+      )
+
+      Text(
+        text = when (selectedLang) {
+          "EN" -> "Tap stage to filter"
+          "AR" -> "اضغط للتصفية"
+          else -> "ফিল্টার করতে ট্যাপ করুন"
+        },
+        style = TextStyle(
+          fontSize = 10.sp,
+          color = Color(0xFF64748B)
+        )
+      )
+    }
+
+    Spacer(modifier = Modifier.height(6.dp))
+
+    LazyRow(
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+      contentPadding = PaddingValues(horizontal = 2.dp)
+    ) {
+      item {
+        val isAllSelected = selectedStageId == null
+        Surface(
+          shape = RoundedCornerShape(12.dp),
+          color = if (isAllSelected) RoyalEmerald else Color.White,
+          border = BorderStroke(1.dp, if (isAllSelected) RoyalEmerald else Color(0xFFE2E8F0)),
+          modifier = Modifier
+            .shadow(if (isAllSelected) 3.dp else 1.dp, RoundedCornerShape(12.dp))
+            .clickable { onStageSelect(null) }
+            .testTag("stage_filter_all")
+        ) {
+          Row(
+            modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Text(text = "🌟", fontSize = 13.sp)
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+              text = when (selectedLang) {
+                "EN" -> "All Levels"
+                "AR" -> "الكل"
+                else -> "সব লেভেল"
+              },
+              style = TextStyle(
+                fontSize = 11.5.sp,
+                fontWeight = if (isAllSelected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isAllSelected) Color.White else Color(0xFF334155)
+              )
+            )
+          }
+        }
+      }
+
+      items(ShapeMasterRoadmapRepository.stages) { stage ->
+        val isSelected = selectedStageId == stage.id
+        Surface(
+          shape = RoundedCornerShape(12.dp),
+          color = if (isSelected) stage.color else Color.White,
+          border = BorderStroke(1.dp, if (isSelected) stage.color else Color(0xFFE2E8F0)),
+          modifier = Modifier
+            .shadow(if (isSelected) 3.dp else 1.dp, RoundedCornerShape(12.dp))
+            .clickable { onStageSelect(stage.id) }
+            .testTag("stage_filter_${stage.stageNumber}")
+        ) {
+          Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Text(text = stage.iconEmoji, fontSize = 13.sp)
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+              text = "${stage.stageNumber}. ${stage.getTitle(selectedLang).substringAfter(":").trim()}",
+              style = TextStyle(
+                fontSize = 11.5.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isSelected) Color.White else Color(0xFF334155)
+              )
+            )
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Stage Milestone Header Card between level sections
+ */
+@Composable
+fun StageMilestoneCard(
+  stage: QuranPedagogyStage,
+  selectedLang: String
+) {
+  Card(
+    shape = RoundedCornerShape(16.dp),
+    colors = CardDefaults.cardColors(containerColor = Color.White),
+    border = BorderStroke(1.5.dp, stage.color.copy(alpha = 0.35f)),
+    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    modifier = Modifier
+      .fillMaxWidth()
+      .padding(vertical = 10.dp)
+      .shadow(3.dp, RoundedCornerShape(16.dp), spotColor = stage.color.copy(alpha = 0.25f))
+      .testTag("stage_milestone_${stage.stageNumber}")
+  ) {
+    Row(
+      modifier = Modifier
+        .fillMaxWidth()
+        .background(
+          Brush.horizontalGradient(
+            colors = listOf(
+              stage.color.copy(alpha = 0.12f),
+              Color.White
+            )
+          )
+        )
+        .padding(14.dp),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Box(
+        modifier = Modifier
+          .size(46.dp)
+          .clip(RoundedCornerShape(14.dp))
+          .background(stage.color)
+          .border(1.5.dp, Color.White.copy(alpha = 0.7f), RoundedCornerShape(14.dp))
+          .shadow(2.dp, RoundedCornerShape(14.dp)),
+        contentAlignment = Alignment.Center
+      ) {
+        Text(text = stage.iconEmoji, fontSize = 22.sp)
+      }
+
+      Spacer(modifier = Modifier.width(12.dp))
+
+      Column(modifier = Modifier.weight(1f)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          Box(
+            modifier = Modifier
+              .clip(RoundedCornerShape(6.dp))
+              .background(stage.color)
+              .padding(horizontal = 6.dp, vertical = 2.dp)
+          ) {
+            Text(
+              text = "STAGE ${stage.stageNumber}",
+              style = TextStyle(
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                letterSpacing = 0.5.sp
+              )
+            )
+          }
+        }
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+          text = stage.getTitle(selectedLang),
+          style = TextStyle(
+            fontSize = 14.5.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF0F172A)
+          )
+        )
+        Text(
+          text = stage.getSubtitle(selectedLang),
+          style = TextStyle(
+            fontSize = 11.sp,
+            color = Color(0xFF64748B),
+            lineHeight = 14.sp
+          )
+        )
+      }
+    }
+  }
+}
+
+/**
+ * Duolingo-style Winding Stepping Stones Path with Stage Milestones
  */
 @Composable
 fun DuolingoWindingPath(
@@ -393,15 +605,38 @@ fun DuolingoWindingPath(
   unlockedLevels: Map<Int, Boolean>,
   levelStars: Map<Int, Int>,
   selectedLang: String,
+  selectedStageId: QuranStageId? = null,
   onNodeClick: (RoadmapLevel) -> Unit
 ) {
+  val displayedLevels = remember(selectedStageId, levels) {
+    if (selectedStageId == null) {
+      levels
+    } else {
+      val targetStage = ShapeMasterRoadmapRepository.stages.firstOrNull { it.id == selectedStageId }
+      levels.filter { targetStage?.levelIds?.contains(it.id) == true }
+    }
+  }
+
   Column(
     modifier = Modifier
       .fillMaxWidth()
       .padding(vertical = 8.dp),
     horizontalAlignment = Alignment.CenterHorizontally
   ) {
-    levels.forEachIndexed { index, level ->
+    var previousStageId: QuranStageId? = null
+
+    displayedLevels.forEachIndexed { index, level ->
+      val currentStage = ShapeMasterRoadmapRepository.stages.firstOrNull { it.levelIds.contains(level.id) }
+      val isNewStage = currentStage != null && currentStage.id != previousStageId
+      if (isNewStage && currentStage != null) {
+        previousStageId = currentStage.id
+        StageMilestoneCard(
+          stage = currentStage,
+          selectedLang = selectedLang
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+      }
+
       val isUnlocked = unlockedLevels[level.id] == true
       val stars = levelStars[level.id] ?: 0
       val isCurrentActive = isUnlocked && (levelStars[level.id] == null || levelStars[level.id] == 0)
@@ -415,7 +650,7 @@ fun DuolingoWindingPath(
       }
 
       // Connecting Path Segment (between nodes)
-      if (index > 0) {
+      if (index > 0 && !isNewStage) {
         ConnectingTrail(
           isUnlocked = isUnlocked,
           fromOffset = when ((index - 1) % 4) {
@@ -426,6 +661,8 @@ fun DuolingoWindingPath(
           },
           toOffset = horizontalOffsetDp
         )
+      } else if (index > 0 && isNewStage) {
+        Spacer(modifier = Modifier.height(10.dp))
       }
 
       // The 3D Stepping Stone Node
