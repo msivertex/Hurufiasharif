@@ -100,7 +100,9 @@ class MainActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
     setContent {
-      MyApplicationTheme {
+      val context = androidx.compose.ui.platform.LocalContext.current
+      val soundManager = remember { SoundManager.getInstance(context) }
+      MyApplicationTheme(darkTheme = soundManager.darkModeEnabledState) {
         AuthScreen()
       }
     }

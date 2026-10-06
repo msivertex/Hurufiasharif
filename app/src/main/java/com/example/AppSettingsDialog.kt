@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Settings
@@ -40,6 +41,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,6 +72,9 @@ fun AppSettingsDialog(
   onDismiss: () -> Unit
 ) {
   var selectedVoice by remember { mutableStateOf(soundManager.currentVoiceGender) }
+  LaunchedEffect(soundManager.currentVoiceGender) {
+    selectedVoice = soundManager.currentVoiceGender
+  }
 
   Dialog(onDismissRequest = onDismiss) {
     Card(
@@ -329,11 +334,130 @@ fun AppSettingsDialog(
           }
         }
 
+        // SECTION 3: Dark Mode Theme Toggle
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          Icon(
+            imageVector = Icons.Default.DarkMode,
+            contentDescription = null,
+            tint = RoyalEmerald,
+            modifier = Modifier.size(18.dp)
+          )
+          Spacer(modifier = Modifier.width(8.dp))
+          Text(
+            text = when (selectedLang) {
+              "EN" -> "Dark Mode (Night Theme)"
+              "AR" -> "الوضع الداكن (السمة الليلية)"
+              else -> "ডার্ক মোড (রাত্রিকালীন থিম)"
+            },
+            style = TextStyle(
+              fontSize = 13.sp,
+              fontWeight = FontWeight.Bold,
+              color = Color(0xFF1E293B)
+            )
+          )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Card(
+          shape = RoundedCornerShape(14.dp),
+          colors = CardDefaults.cardColors(
+            containerColor = if (soundManager.darkModeEnabledState) Color(0xFF1E293B) else Color(0xFFF8FAFC)
+          ),
+          border = BorderStroke(
+            if (soundManager.darkModeEnabledState) 1.5.dp else 1.dp,
+            if (soundManager.darkModeEnabledState) RoyalEmerald else Color(0xFFCBD5E1)
+          ),
+          modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+              soundManager.setDarkModeEnabled(!soundManager.darkModeEnabledState)
+            }
+            .testTag("dark_mode_enabled_card")
+        ) {
+          Row(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+          ) {
+            Row(
+              modifier = Modifier.weight(1f),
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              Box(
+                modifier = Modifier
+                  .size(36.dp)
+                  .clip(CircleShape)
+                  .background(
+                    if (soundManager.darkModeEnabledState) RoyalEmerald.copy(alpha = 0.25f)
+                    else Color(0xFFE2E8F0)
+                  ),
+                contentAlignment = Alignment.Center
+              ) {
+                Icon(
+                  imageVector = Icons.Default.DarkMode,
+                  contentDescription = null,
+                  tint = if (soundManager.darkModeEnabledState) Color(0xFFFDE047) else Color(0xFF64748B),
+                  modifier = Modifier.size(20.dp)
+                )
+              }
+
+              Spacer(modifier = Modifier.width(10.dp))
+
+              Column {
+                Text(
+                  text = when (selectedLang) {
+                    "EN" -> "Eye-Comfort Dark Canvas"
+                    "AR" -> "مظهر داكن مريح للعين"
+                    else -> "চোখ-বান্ধব নাইট মোড"
+                  },
+                  style = TextStyle(
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (soundManager.darkModeEnabledState) Color.White else Color(0xFF0F172A)
+                  )
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                  text = when (selectedLang) {
+                    "EN" -> "Reduces glare for night-time recitation & learning"
+                    "AR" -> "تقليل السطوع للتلاوة والدراسة ليلاً براحة تامة"
+                    else -> "রাতে তিলাওয়াত ও পড়াশোনায় চোখের আরামের জন্য ডার্ক থিম সক্রিয় করুন"
+                  },
+                  style = TextStyle(
+                    fontSize = 10.sp,
+                    color = if (soundManager.darkModeEnabledState) Color(0xFF94A3B8) else Color(0xFF64748B),
+                    lineHeight = 13.sp
+                  )
+                )
+              }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Switch(
+              checked = soundManager.darkModeEnabledState,
+              onCheckedChange = { isChecked ->
+                soundManager.setDarkModeEnabled(isChecked)
+              },
+              colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = RoyalEmerald,
+                uncheckedThumbColor = Color.White,
+                uncheckedTrackColor = Color(0xFFCBD5E1)
+              ),
+              modifier = Modifier.testTag("dark_mode_switch")
+            )
+          }
+        }
+
         Spacer(modifier = Modifier.height(18.dp))
         HorizontalDivider(color = Color(0xFFE2E8F0))
         Spacer(modifier = Modifier.height(14.dp))
 
-        // SECTION 3: 3D Makhraj Visualizer Quick Launch
+        // SECTION 4: 3D Makhraj Visualizer Quick Launch
         Card(
           shape = RoundedCornerShape(14.dp),
           colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
@@ -511,6 +635,11 @@ fun VoiceGenderCard(
         )
 
         Spacer(modifier = Modifier.width(4.dp))
+        Text(
+          text = if (gender == VoiceGender.MALE_QARI) "👳‍♂️" else "🧕",
+          fontSize = 20.sp
+        )
+        Spacer(modifier = Modifier.width(8.dp))
 
         Column {
           Text(

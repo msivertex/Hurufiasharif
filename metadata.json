@@ -1,6 +1,6 @@
 {
   "name": "HURUFIA SHARIF",
-  "description": "Multilingual gamified Arabic alphabet learning app featuring 3D Makhraj Articulation Visualizer, male & female voice recitation (Qari & Qaria), Duolingo-style Shape Master Path roadmap, quiz mechanics, and interactive Tajweed learning in Bengali, English, and Arabic.",
+  "description": "Multilingual gamified Arabic alphabet learning app featuring 3D Makhraj Articulation Visualizer, male & female voice recitation (Qari & Qaria), 20-level Form Fuser, Letter Linker, Shape Master, and Nukta Master roadmaps, and interactive Tajweed learning in Bengali, English, and Arabic.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

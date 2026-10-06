@@ -55,6 +55,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -112,6 +113,9 @@ fun MakhrajVisualizerModal(
   var isSlowMotion by remember { mutableStateOf(false) }
   var rotation3DAngle by remember { mutableFloatStateOf(15f) } // -30f to +45f
   var activeVoiceGender by remember { mutableStateOf(soundManager.currentVoiceGender) }
+  LaunchedEffect(soundManager.currentVoiceGender) {
+    activeVoiceGender = soundManager.currentVoiceGender
+  }
 
   val makhrajProfile = remember(currentLetter.letter) {
     MakhrajRepository.getProfile(currentLetter.letter)

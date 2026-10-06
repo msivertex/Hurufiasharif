@@ -158,26 +158,27 @@ fun NextPrayerCompactWidget(
   LaunchedEffect(Unit) {
     if (locationService.hasLocationPermission()) {
       locationService.fetchCurrentLocation(
-        onSuccess = { lat, lng, name, tz ->
+        onSuccess = { lat, lng, name, tz, isGps ->
           latitude = lat
           longitude = lng
           locationName = name
           timezoneHours = tz
-          offlineRepo.saveLocation(lat, lng, name, tz)
+          offlineRepo.saveLocation(lat, lng, name, tz, isGps)
         },
         onFailure = {}
       )
     }
   }
 
-  val prayerSchedule = remember(latitude, longitude, timezoneHours, method, juristicMethod) {
+  val prayerSchedule = remember(latitude, longitude, timezoneHours, method, juristicMethod, offlineRepo.isGpsLocated) {
     PrayerTimesCalculator.calculate(
       latitude = latitude,
       longitude = longitude,
       timezoneOffset = timezoneHours,
       locationName = locationName,
       method = method,
-      juristicMethod = juristicMethod
+      juristicMethod = juristicMethod,
+      isGpsLocated = offlineRepo.isGpsLocated
     )
   }
 
@@ -452,12 +453,12 @@ fun IslamicSuiteScreen(
     if (granted) {
       isGpsLoading = true
       locationService.fetchCurrentLocation(
-        onSuccess = { lat, lng, name, tz ->
+        onSuccess = { lat, lng, name, tz, isGps ->
           latitude = lat
           longitude = lng
           locationName = name
           timezoneHours = tz
-          offlineRepo.saveLocation(lat, lng, name, tz)
+          offlineRepo.saveLocation(lat, lng, name, tz, isGps)
           isGpsLoading = false
         },
         onFailure = { isGpsLoading = false }
@@ -469,12 +470,12 @@ fun IslamicSuiteScreen(
     if (locationService.hasLocationPermission()) {
       isGpsLoading = true
       locationService.fetchCurrentLocation(
-        onSuccess = { lat, lng, name, tz ->
+        onSuccess = { lat, lng, name, tz, isGps ->
           latitude = lat
           longitude = lng
           locationName = name
           timezoneHours = tz
-          offlineRepo.saveLocation(lat, lng, name, tz)
+          offlineRepo.saveLocation(lat, lng, name, tz, isGps)
           isGpsLoading = false
         },
         onFailure = { isGpsLoading = false }
@@ -652,7 +653,7 @@ fun IslamicSuiteScreen(
           locationName = locName
           calculationMethod = city.defaultMethod
           juristicMethod = city.defaultJuristic
-          offlineRepo.saveLocation(city.latitude, city.longitude, locName, city.timezoneHours)
+          offlineRepo.saveLocation(city.latitude, city.longitude, locName, city.timezoneHours, isGps = false)
           offlineRepo.calculationMethod = city.defaultMethod
           offlineRepo.juristicMethod = city.defaultJuristic
           showCityDialog = false
@@ -762,7 +763,7 @@ fun SalahTimingsScreen(
                 border = BorderStroke(1.dp, Color(0xFFFDE047))
               ) {
                 Text(
-                  text = method.name,
+                  text = if (selectedLang == "BN") prayerSchedule.calculationAuthorityBn else prayerSchedule.calculationAuthorityEn,
                   style = TextStyle(fontSize = 10.sp, color = Color(0xFFFEF08A), fontWeight = FontWeight.Bold),
                   modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                 )
@@ -839,6 +840,78 @@ fun SalahTimingsScreen(
                 color = Color.White
               ),
               modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+            )
+          }
+        }
+      }
+    }
+
+    Spacer(modifier = Modifier.height(12.dp))
+
+    // Fasting Boundaries: Explicit Sahri End & Iftar Start Cards
+    Row(
+      modifier = Modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+      Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFBAE6FD)),
+        shadowElevation = 2.dp,
+        modifier = Modifier.weight(1f)
+      ) {
+        Row(
+          modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Text(text = "🌙", fontSize = 20.sp)
+          Spacer(modifier = Modifier.width(8.dp))
+          Column {
+            Text(
+              text = if (selectedLang == "BN") "সেহরি শেষ (Sahri End)" else "Sahri End",
+              style = TextStyle(fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0369A1)),
+              maxLines = 1
+            )
+            Text(
+              text = prayerSchedule.todaySahriEndFormatted,
+              style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0C4A6E))
+            )
+            Text(
+              text = if (selectedLang == "BN") "ফজর আজানের সময়" else "Fajr Azan Time",
+              style = TextStyle(fontSize = 9.sp, color = Color(0xFF64748B)),
+              maxLines = 1
+            )
+          }
+        }
+      }
+
+      Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFFED7AA)),
+        shadowElevation = 2.dp,
+        modifier = Modifier.weight(1f)
+      ) {
+        Row(
+          modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Text(text = "☀️", fontSize = 20.sp)
+          Spacer(modifier = Modifier.width(8.dp))
+          Column {
+            Text(
+              text = if (selectedLang == "BN") "ইফতার শুরু (Iftar Start)" else "Iftar Start",
+              style = TextStyle(fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309)),
+              maxLines = 1
+            )
+            Text(
+              text = prayerSchedule.todayIftarStartFormatted,
+              style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF9A3412))
+            )
+            Text(
+              text = if (selectedLang == "BN") "মাগরিব আজানের সময়" else "Maghrib Azan Time",
+              style = TextStyle(fontSize = 9.sp, color = Color(0xFF64748B)),
+              maxLines = 1
             )
           }
         }

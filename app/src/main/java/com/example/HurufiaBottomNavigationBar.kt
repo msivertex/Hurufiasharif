@@ -20,10 +20,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Mosque
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -48,7 +48,8 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.theme.RoyalEmerald
 
 /**
- * 4 Primary Destinations for persistent bottom navigation
+ * 4 Primary Destinations for persistent bottom navigation:
+ * Home, Calendar (Hijri/Gregorian), Qibla (Compass), Profile
  */
 enum class MainAppTab(
   val id: String,
@@ -57,46 +58,46 @@ enum class MainAppTab(
 ) {
   HOME(
     id = "home",
-    icon = Icons.Default.GridView,
+    icon = Icons.Default.Home,
     testTag = "bottom_tab_home"
   ),
-  QURAN_LEARNING(
-    id = "quran_learning",
-    icon = Icons.AutoMirrored.Filled.MenuBook,
-    testTag = "bottom_tab_quran"
+  CALENDAR(
+    id = "calendar",
+    icon = Icons.Default.DateRange,
+    testTag = "bottom_tab_calendar"
   ),
-  ISLAMIC_CORNER(
-    id = "islamic_corner",
-    icon = Icons.Default.Mosque,
-    testTag = "bottom_tab_islamic"
+  QIBLA(
+    id = "qibla",
+    icon = Icons.Default.Explore,
+    testTag = "bottom_tab_qibla"
   ),
-  SETTINGS(
-    id = "settings",
-    icon = Icons.Default.Settings,
-    testTag = "bottom_tab_settings"
+  PROFILE(
+    id = "profile",
+    icon = Icons.Default.Person,
+    testTag = "bottom_tab_profile"
   );
 
   fun getTitle(lang: String): String {
     return when (this) {
       HOME -> when (lang) {
-        "EN" -> "Home / Games"
-        "AR" -> "الرئيسية / الألعاب"
-        else -> "হোম / গেমসমূহ"
+        "EN" -> "Home"
+        "AR" -> "الرئيسية"
+        else -> "হোম"
       }
-      QURAN_LEARNING -> when (lang) {
-        "EN" -> "Quran Learning"
-        "AR" -> "تعلم القرآن"
-        else -> "কুরআন লার্নিং"
+      CALENDAR -> when (lang) {
+        "EN" -> "Calendar"
+        "AR" -> "التقويم"
+        else -> "ক্যালেন্ডার"
       }
-      ISLAMIC_CORNER -> when (lang) {
-        "EN" -> "Islamic Corner"
-        "AR" -> "الركن الإسلامي"
-        else -> "ইসলামিক কর্নার"
+      QIBLA -> when (lang) {
+        "EN" -> "Qibla"
+        "AR" -> "القبلة"
+        else -> "কিবলা"
       }
-      SETTINGS -> when (lang) {
-        "EN" -> "Settings"
-        "AR" -> "الإعدادات"
-        else -> "সেটিংস"
+      PROFILE -> when (lang) {
+        "EN" -> "Profile"
+        "AR" -> "الملف الشخصي"
+        else -> "প্রোফাইল"
       }
     }
   }

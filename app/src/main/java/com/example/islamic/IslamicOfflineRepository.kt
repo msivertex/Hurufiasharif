@@ -74,11 +74,54 @@ class IslamicOfflineRepository private constructor(context: Context) {
       prefs.edit().putInt("hijri_day_adjustment", value).apply()
     }
 
-  fun saveLocation(lat: Double, lng: Double, name: String, tz: Double) {
+  var isAzanMuted: Boolean
+    get() = prefs.getBoolean("is_azan_muted", false)
+    set(value) {
+      prefs.edit().putBoolean("is_azan_muted", value).apply()
+    }
+
+  var isGpsLocated: Boolean
+    get() = prefs.getBoolean("is_gps_located", false)
+    set(value) {
+      prefs.edit().putBoolean("is_gps_located", value).apply()
+    }
+
+  var selectedCityName: String
+    get() = prefs.getString("selected_city_name", "") ?: ""
+    set(value) {
+      prefs.edit().putString("selected_city_name", value).apply()
+    }
+
+  var locationMode: String
+    get() = if (isGpsLocated) "GPS" else "MANUAL"
+    set(value) {
+      isGpsLocated = (value.equals("GPS", ignoreCase = true))
+    }
+
+  fun saveLocation(
+    lat: Double,
+    lng: Double,
+    name: String,
+    tz: Double,
+    isGps: Boolean = false,
+    autoDetectedMethod: CalculationMethod? = null,
+    autoDetectedJuristic: JuristicMethod? = null,
+    cityName: String = ""
+  ) {
     latitude = lat
     longitude = lng
     locationName = name
     timezoneHours = tz
+    isGpsLocated = isGps
+    if (cityName.isNotBlank()) {
+      selectedCityName = cityName
+    }
+    if (autoDetectedMethod != null) {
+      calculationMethod = autoDetectedMethod
+    }
+    if (autoDetectedJuristic != null) {
+      juristicMethod = autoDetectedJuristic
+    }
   }
 
   companion object {

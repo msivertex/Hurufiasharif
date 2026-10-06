@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>মাল্টি-ক্যালেন্ডার | হরুফিয়া শরিফ (বাংলা • হিজরি • ইংরেজি)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            emerald: {
+              850: '#064E3B',
+              950: '#022c22',
+            },
+            royal: '#0A5C36',
+          },
+          fontFamily: {
+            bengali: ['"Hind Siliguri"', 'sans-serif'],
+            sans: ['"Plus Jakarta Sans"', '"Hind Siliguri"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Hind Siliguri', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background-color: #CBD5E1;
+      border-radius: 4px;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .animate-modal {
+      animation: modalFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen flex justify-center items-start text-slate-800 antialiased p-0 sm:p-4">
+
+  <!-- Mobile Frame Container (390px - 430px optimal viewport) -->
+  <div class="w-full max-w-[440px] bg-slate-50 min-h-screen sm:min-h-[880px] sm:rounded-[36px] shadow-2xl overflow-hidden flex flex-col relative border border-slate-200/80">
+
+    <!-- 1. Top Bar & Navigation -->
+    <header class="bg-emerald-800 text-white pt-3 pb-3 px-4 shadow-md z-10 sticky top-0">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center text-lg border border-white/20">
+            📖
+          </div>
+          <div>
+            <h1 class="text-lg font-bold tracking-tight text-white leading-tight">হরুফিয়া শরিফ</h1>
+            <p class="text-[10px] text-emerald-200 font-medium tracking-wide">সমন্বিত ৩-ইন-১ মাল্টি-ক্যালেন্ডার</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-1.5">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-700/80 text-emerald-100 border border-emerald-600/60">
+            লাইভ সমলয়
+          </span>
+        </div>
+      </div>
+
+      <!-- 3-tab switch: [বাংলা | হিজরি | ইংরেজি] -->
+      <div class="mt-3.5 bg-emerald-950/40 p-1 rounded-xl flex items-center border border-white/10 text-xs font-semibold">
+        <button id="tab-btn-bn" onclick="switchCalendar('bn')" class="flex-1 py-1.5 text-center rounded-lg transition-all duration-200 bg-white text-emerald-900 shadow-sm font-bold flex items-center justify-center gap-1">
+          <span>🇧🇩</span> বাংলা
+        </button>
+        <button id="tab-btn-ar" onclick="switchCalendar('ar')" class="flex-1 py-1.5 text-center rounded-lg transition-all duration-200 text-emerald-100 hover:text-white flex items-center justify-center gap-1">
+          <span>🌙</span> হিজরি
+        </button>
+        <button id="tab-btn-en" onclick="switchCalendar('en')" class="flex-1 py-1.5 text-center rounded-lg transition-all duration-200 text-emerald-100 hover:text-white flex items-center justify-center gap-1">
+          <span>📅</span> ইংরেজি
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Scrollable Content Area -->
+    <main class="flex-1 overflow-y-auto custom-scroll p-4 pb-24 space-y-4">
+
+      <!-- ================= 1. BENGALI CALENDAR SECTION ================= -->
+      <div id="section-bn" class="space-y-4 transition-opacity duration-300">
+        <!-- Hero Date Card -->
+        <div class="rounded-2xl p-5 bg-gradient-to-br from-emerald-800 via-emerald-700 to-emerald-600 text-white shadow-lg relative overflow-hidden">
+          <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-white/5 rounded-full blur-xl pointer-events-none"></div>
+          
+          <div class="flex justify-between items-center text-xs font-semibold">
+            <span class="bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/20">🇧🇩 বঙ্গাব্দ সন</span>
+            <span id="bn-season-badge" class="bg-amber-100 text-amber-900 px-2.5 py-1 rounded-lg font-bold shadow-xs">ঋতু: শরৎকাল</span>
+          </div>
+
+          <div class="text-center my-3">
+            <div id="bn-hero-day" class="text-6xl font-extrabold tracking-tight drop-shadow-sm">৩০</div>
+            <div id="bn-hero-month-year" class="text-xl font-bold text-emerald-100 mt-1">ভাদ্র, ১৪৩৩ বঙ্গাব্দ</div>
+            <div class="mt-2.5 inline-block bg-black/20 backdrop-blur-sm px-3.5 py-1 rounded-full text-xs font-medium text-emerald-50">
+              <span id="bn-hero-sub">আজ সোমবার • শরৎকাল</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 12 Months Grid (3 columns) -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+          <div class="flex justify-between items-center mb-3">
+            <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              <span class="text-emerald-700">🗓️</span> বাংলা ১২ মাসের তালিকা
+            </h2>
+            <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">মাসে ট্যাপ করুন 👆</span>
+          </div>
+
+          <div id="bn-months-grid" class="grid grid-cols-3 gap-2.5 text-center">
+            <!-- Rendered dynamically by JS -->
+          </div>
+        </div>
+
+        <!-- Seasons Info Section (ষড়ঋতু) -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+          <button onclick="toggleSeasons()" class="w-full flex justify-between items-center text-left">
+            <span class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              <span>🌾</span> বাংলার ষড়ঋতু (৬ ঋতু ও ১২ মাস)
+            </span>
+            <span id="seasons-toggle-icon" class="text-emerald-700 text-sm font-bold transition-transform">▼</span>
+          </button>
+
+          <div id="seasons-container" class="mt-3 space-y-2 text-xs divide-y divide-slate-100">
+            <!-- 6 seasons rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= 2. HIJRI CALENDAR SECTION ================= -->
+      <div id="section-ar" class="space-y-4 hidden transition-opacity duration-300">
+        <!-- Hero Hijri Card -->
+        <div class="rounded-2xl p-5 bg-gradient-to-br from-slate-900 via-emerald-900 to-emerald-800 text-white shadow-lg relative overflow-hidden">
+          <div class="flex justify-between items-center text-xs font-semibold">
+            <span class="bg-white/20 px-2.5 py-1 rounded-lg border border-white/20">🌙 হিজরি চান্দ্রবর্ষ</span>
+            <span id="ar-white-day-badge" class="bg-amber-200 text-amber-900 px-2.5 py-1 rounded-lg font-bold">✨ আইয়ামে বিজ (রোজা)</span>
+          </div>
+
+          <div class="text-center my-3">
+            <div id="ar-moon-emoji" class="text-3xl mb-1">🌕</div>
+            <div id="ar-hero-day" class="text-6xl font-extrabold tracking-tight">১৫</div>
+            <div id="ar-hero-month-year" class="text-xl font-bold text-emerald-200 mt-1">সফর, ১৪৪৬ হিজরি</div>
+            <div id="ar-hero-sub" class="text-sm text-emerald-100/90 mt-1 font-sans">صفر ١٤٤٦ هـ</div>
+          </div>
+        </div>
+
+        <!-- Moon Sighting Adjustment Bar -->
+        <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <span class="p-1.5 bg-emerald-100 text-emerald-800 rounded-lg text-sm">⚙️</span>
+            <div>
+              <div class="font-bold text-slate-800">চাঁদ দেখার সমন্বয়</div>
+              <div class="text-[11px] text-slate-500">স্থানীয় দর্শন অনুযায়ী দিন পরিবর্তন</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="adjustHijriDay(-1)" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-full font-bold text-emerald-800 flex items-center justify-center">-</button>
+            <span id="ar-adjustment-text" class="font-bold text-emerald-800 text-sm">0 দিন</span>
+            <button onclick="adjustHijriDay(1)" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-full font-bold text-emerald-800 flex items-center justify-center">+</button>
+          </div>
+        </div>
+
+        <!-- Hijri 12 Months Grid -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+          <div class="flex justify-between items-center mb-3">
+            <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              <span class="text-emerald-700">🌙</span> হিজরি ১২ মাসের বর্ষপঞ্জি
+            </h2>
+            <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">মাসে ট্যাপ করুন 👆</span>
+          </div>
+          <div id="ar-months-grid" class="grid grid-cols-3 gap-2.5 text-center">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Key Islamic Events List -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+          <h2 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-1.5">
+            <span>🕌</span> গুরুত্বপূর্ণ ইসলামিক দিবস ও উৎসব
+          </h2>
+          <div id="ar-events-list" class="space-y-2.5 text-xs divide-y divide-slate-100">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= 3. GREGORIAN CALENDAR SECTION ================= -->
+      <div id="section-en" class="space-y-4 hidden transition-opacity duration-300">
+        <!-- Hero Gregorian Card -->
+        <div class="rounded-2xl p-5 bg-gradient-to-br from-blue-900 via-blue-700 to-indigo-600 text-white shadow-lg relative overflow-hidden">
+          <div class="flex justify-between items-center text-xs font-semibold">
+            <span class="bg-white/20 px-2.5 py-1 rounded-lg border border-white/20">📅 ইংরেজি ক্যালেন্ডার</span>
+            <span class="bg-blue-100 text-blue-900 px-2.5 py-1 rounded-lg font-bold">আন্তর্জাতিক মান</span>
+          </div>
+
+          <div class="text-center my-3">
+            <div id="en-hero-day" class="text-6xl font-extrabold tracking-tight">১৪</div>
+            <div id="en-hero-month-year" class="text-xl font-bold text-blue-100 mt-1">১৪ সেপ্টেম্বর ২০২৬, সোমবার</div>
+            <div class="mt-2.5 inline-block bg-black/20 backdrop-blur-sm px-3.5 py-1 rounded-full text-xs font-medium text-blue-100">
+              <span id="en-hero-sub">বছরের ২৫৭ তম দিন • সপ্তাহ নম্বর ৩৭</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gregorian 12 Months Grid -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+          <div class="flex justify-between items-center mb-3">
+            <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              <span class="text-blue-600">📅</span> ইংরেজি ১২ মাসের বর্ষপঞ্জি
+            </h2>
+            <span class="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">মাসে ট্যাপ করুন 👆</span>
+          </div>
+          <div id="en-months-grid" class="grid grid-cols-3 gap-2.5 text-center">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- 3-in-1 Summary Card -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 text-xs space-y-2.5">
+          <h2 class="text-sm font-bold text-slate-800 mb-1">সমন্বিত ৩টি ক্যালেন্ডার সারসংক্ষেপ</h2>
+          <div class="flex justify-between py-1 border-b border-slate-100">
+            <span class="text-slate-500">🇧🇩 বাংলা সন:</span>
+            <span id="sum-bn" class="font-bold text-emerald-800">৩০ ভাদ্র, ১৪৩৩ বঙ্গাব্দ (শরৎকাল)</span>
+          </div>
+          <div class="flex justify-between py-1 border-b border-slate-100">
+            <span class="text-slate-500">🌙 হিজরি সন:</span>
+            <span id="sum-ar" class="font-bold text-emerald-700">১৫ সফর, ১৪৪৬ হিজরি</span>
+          </div>
+          <div class="flex justify-between py-1">
+            <span class="text-slate-500">📅 ইংরেজি সন:</span>
+            <span id="sum-en" class="font-bold text-blue-700">14 September 2026, Monday</span>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ================= MODAL / POPUP CALENDAR SYSTEM ================= -->
+    <div id="calendar-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 z-50 hidden">
+      <div class="bg-white w-full max-w-[420px] rounded-3xl p-5 shadow-2xl animate-modal relative max-h-[92vh] flex flex-col border border-slate-100">
+        
+        <!-- Modal Header -->
+        <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+          <div class="flex items-center gap-2.5">
+            <span id="modal-icon" class="text-2xl">🇧🇩</span>
+            <div>
+              <h3 id="modal-title" class="text-base font-extrabold text-emerald-900 leading-tight">ভাদ্র, ১৪৩৩ বঙ্গাব্দ</h3>
+              <p id="modal-subtitle" class="text-[11px] text-slate-500 font-medium">শরৎকাল • ৩১ দিন</p>
+            </div>
+          </div>
+          <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center font-bold text-base transition-colors">
+            ✕
+          </button>
+        </div>
+
+        <!-- 7-Day Header -->
+        <div class="grid grid-cols-7 text-center font-bold text-[11px] py-2 mt-2 bg-slate-50 rounded-xl">
+          <span class="text-slate-600">রবি</span>
+          <span class="text-slate-600">সোম</span>
+          <span class="text-slate-600">মঙ্গল</span>
+          <span class="text-slate-600">বুধ</span>
+          <span class="text-slate-600">বৃহস্পতি</span>
+          <span class="text-red-600 font-extrabold">শুক্র</span>
+          <span class="text-red-600 font-extrabold">শনি</span>
+        </div>
+
+        <!-- Month Days Grid -->
+        <div id="modal-days-grid" class="grid grid-cols-7 gap-1 text-center py-2 overflow-y-auto max-h-[260px] custom-scroll">
+          <!-- Dynamically inserted days -->
+        </div>
+
+        <!-- Selected Date Details Panel inside modal -->
+        <div id="modal-date-detail" class="mt-3 p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
+          <div class="flex justify-between items-center mb-1.5">
+            <span class="text-[11px] font-bold text-slate-500">তারিখের সমন্বিত রূপ:</span>
+            <span id="modal-weekend-tag" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-100 text-red-700 hidden">সাপ্তাহিক ছুটি</span>
+          </div>
+          <div id="modal-detail-primary" class="text-sm font-bold text-emerald-900 mb-2">১৫ই ভাদ্র, ১৪৩৩ বঙ্গাব্দ (শনিবার)</div>
+          
+          <div class="grid grid-cols-3 gap-1.5 text-center">
+            <div class="bg-white p-2 rounded-xl border border-slate-200/80">
+              <div class="text-[9px] text-slate-400 font-medium">🇧🇩 বাংলা</div>
+              <div id="detail-bn" class="font-bold text-emerald-800 text-[11px] mt-0.5">১৫ ভাদ্র</div>
+            </div>
+            <div class="bg-white p-2 rounded-xl border border-slate-200/80">
+              <div class="text-[9px] text-slate-400 font-medium">🌙 হিজরি</div>
+              <div id="detail-ar" class="font-bold text-emerald-700 text-[11px] mt-0.5">২৪ সফর</div>
+            </div>
+            <div class="bg-white p-2 rounded-xl border border-slate-200/80">
+              <div class="text-[9px] text-slate-400 font-medium">📅 ইংরেজি</div>
+              <div id="detail-en" class="font-bold text-blue-700 text-[11px] mt-0.5">31 Aug 2026</div>
+            </div>
+          </div>
+
+          <div id="modal-holiday-badge" class="mt-2.5 p-2 bg-red-50 border border-red-200 rounded-xl text-red-700 text-[11px] font-bold flex items-center gap-1.5 hidden">
+            <span>🎉</span>
+            <span id="modal-holiday-text">পহেলা বৈশাখ (সরকারি ছুটি)</span>
+          </div>
+        </div>
+
+        <button onclick="closeModal()" class="w-full mt-3.5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-xs shadow-md transition-colors">
+          ঠিক আছে (বন্ধ করুন)
+        </button>
+      </div>
+    </div>
+
+    <!-- 4. Bottom Navigation Bar (4 tabs: Home, Calendar [active], Qibla, Profile) -->
+    <nav class="bg-white/95 backdrop-blur-md border-t border-slate-200 fixed sm:absolute bottom-0 left-0 right-0 py-2 px-6 flex justify-around items-center z-20 shadow-lg">
+      <button class="flex flex-col items-center text-slate-400 hover:text-emerald-700 transition-colors">
+        <span class="text-xl">🏠</span>
+        <span class="text-[10px] font-semibold mt-0.5">হোম</span>
+      </button>
+
+      <button class="flex flex-col items-center text-emerald-700 font-bold">
+        <span class="text-xl">🗓️</span>
+        <span class="text-[10px] font-bold mt-0.5 text-emerald-800">ক্যালেন্ডার</span>
+        <span class="w-1.5 h-1.5 bg-emerald-700 rounded-full mt-0.5"></span>
+      </button>
+
+      <button class="flex flex-col items-center text-slate-400 hover:text-emerald-700 transition-colors">
+        <span class="text-xl">🧭</span>
+        <span class="text-[10px] font-semibold mt-0.5">কিবলা</span>
+      </button>
+
+      <button class="flex flex-col items-center text-slate-400 hover:text-emerald-700 transition-colors">
+        <span class="text-xl">👤</span>
+        <span class="text-[10px] font-semibold mt-0.5">প্রোফাইল</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // Numbers in Bengali
+    const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    function toBn(num) {
+      return num.toString().replace(/\d/g, d => bnDigits[d]);
+    }
+
+    // Bengali Months metadata
+    const bnMonths = [
+      { name: "বৈশাখ", days: 31, season: "গ্রীষ্মকাল", startMonth: 3, startDay: 14 },
+      { name: "জ্যৈষ্ঠ", days: 31, season: "গ্রীষ্মকাল", startMonth: 4, startDay: 15 },
+      { name: "আষাঢ়", days: 31, season: "বর্ষাকাল", startMonth: 5, startDay: 15 },
+      { name: "শ্রাবণ", days: 31, season: "বর্ষাকাল", startMonth: 6, startDay: 16 },
+      { name: "ভাদ্র", days: 31, season: "শরৎকাল", startMonth: 7, startDay: 16 },
+      { name: "আশ্বিন", days: 31, season: "শরৎকাল", startMonth: 8, startDay: 16 },
+      { name: "কার্তিক", days: 30, season: "হেমন্তকাল", startMonth: 9, startDay: 17 },
+      { name: "অগ্রহায়ণ", days: 30, season: "হেমন্তকাল", startMonth: 10, startDay: 16 },
+      { name: "পৌষ", days: 30, season: "শীতকাল", startMonth: 11, startDay: 16 },
+      { name: "মাঘ", days: 30, season: "শীতকাল", startMonth: 0, startDay: 15 },
+      { name: "ফাল্গুন", days: 30, season: "বসন্তকাল", startMonth: 1, startDay: 14 },
+      { name: "চৈত্র", days: 30, season: "বসন্তকাল", startMonth: 2, startDay: 15 }
+    ];
+
+    // Hijri Months metadata
+    const hijriMonths = [
+      { name: "মুহররম", ar: "المحرّم", days: 30 },
+      { name: "সফর", ar: "صفر", days: 29 },
+      { name: "রবিউল আউয়াল", ar: "ربيع الأوّل", days: 30 },
+      { name: "রবিউস সানি", ar: "ربيع الثاني", days: 29 },
+      { name: "জমাদিউল আউয়াল", ar: "جمادى الأولى", days: 30 },
+      { name: "জমাদিউস সানি", ar: "جمادى الآخرة", days: 29 },
+      { name: "রজব", ar: "رجب", days: 30 },
+      { name: "শাবান", ar: "شعبان", days: 29 },
+      { name: "রমজান", ar: "رمضان", days: 30 },
+      { name: "শাওয়াল", ar: "شوّال", days: 29 },
+      { name: "জিলকদ", ar: "ذو القعدة", days: 30 },
+      { name: "জিলহজ", ar: "ذو الحجة", days: 30 }
+    ];
+
+    // Gregorian Months metadata
+    const gregMonths = [
+      { name: "জানুয়ারি", en: "January", days: 31 },
+      { name: "ফেব্রুয়ারি", en: "February", days: 28 },
+      { name: "মার্চ", en: "March", days: 31 },
+      { name: "এপ্রিল", en: "April", days: 30 },
+      { name: "মে", en: "May", days: 31 },
+      { name: "জুন", en: "June", days: 30 },
+      { name: "জুলাই", en: "July", days: 31 },
+      { name: "আগস্ট", en: "August", days: 31 },
+      { name: "সেপ্টেম্বর", en: "September", days: 30 },
+      { name: "অক্টোবর", en: "October", days: 31 },
+      { name: "নভেম্বর", en: "November", days: 30 },
+      { name: "ডিসেম্বর", en: "December", days: 31 }
+    ];
+
+    // Key Islamic Events
+    const islamicEvents = [
+      { day: 1, month: 0, title: "পবিত্র হিজরি নববর্ষ", desc: "১লা মহররম, হিজরি চান্দ্রবর্ষের সূচনা" },
+      { day: 10, month: 0, title: "পবিত্র আশুরা", desc: "১০ই মহররম, ঐতিহাসিক কারবালার স্মরণে রোজা" },
+      { day: 12, month: 2, title: "পবিত্র ঈদে মিলাদুন্নবী (সাঃ)", desc: "১২ই রবিউল আউয়াল, বিশ্বনবীর জন্ম ও ওফাত" },
+      { day: 27, month: 6, title: "পবিত্র শবে মেরাজ", desc: "২৭শে রজব, প্রিয় নবীর ঊর্ধ্বাকাশে মিরাজ গমন" },
+      { day: 15, month: 7, title: "পবিত্র শবে বরাত", desc: "১৫ই শাবান, মাগফিরাত ও বরকতের মহিমান্বিত রজনী" },
+      { day: 1, month: 8, title: "পবিত্র মাহে রমজান শুরু", desc: "১লা রমজান, মাসব্যাপী সিয়াম সাধনা ও রহমত" },
+      { day: 27, month: 8, title: "পবিত্র শবে কদর", desc: "২৭শে রমজান, হাজার মাসের চেয়েও শ্রেষ্ঠ রজনী" },
+      { day: 1, month: 9, title: "পবিত্র ঈদুল ফিতর", desc: "১লা শাওয়াল, মাসব্যাপী রোজা শেষে আনন্দের দিন" },
+      { day: 9, month: 11, title: "পবিত্র ইয়াওমে আরাফাহ", desc: "৯ই জিলহজ, হজের মূল দিন ও গুনাহ মাফের রোজা" },
+      { day: 10, month: 11, title: "পবিত্র ঈদুল আজহা", desc: "১০ই জিলহজ, হযরত ইব্রাহিম (আঃ)-এর আত্মত্যাগের কোরবানি" }
+    ];
+
+    // Current State
+    let currentCalendar = 'bn';
+    let hijriAdjustment = 0;
+    const today = new Date(); // e.g. Sep 14, 2026
+
+    // Active Running Month Indices
+    // In September: Gregorian month = 8 (September)
+    // Bangla: Bhadra = index 4
+    // Hijri: Safar = index 1
+    const currentBnMonthIndex = 4; // ভাদ্র
+    const currentBnDay = 30;
+    const currentArMonthIndex = 1; // সফর
+    const currentArDay = 15;
+    const currentEnMonthIndex = today.getMonth(); // 8
+    const currentEnDay = today.getDate(); // 14
+
+    // 1. Switch Calendar [বাংলা | হিজরি | ইংরেজি]
+    function switchCalendar(type) {
+      currentCalendar = type;
+      ['bn', 'ar', 'en'].forEach(t => {
+        const sec = document.getElementById('section-' + t);
+        const btn = document.getElementById('tab-btn-t');
+        if (t === type) {
+          sec.classList.remove('hidden');
+          document.getElementById('tab-btn-' + t).className = "flex-1 py-1.5 text-center rounded-lg transition-all duration-200 bg-white text-emerald-900 shadow-sm font-bold flex items-center justify-center gap-1";
+        } else {
+          sec.classList.add('hidden');
+          document.getElementById('tab-btn-' + t).className = "flex-1 py-1.5 text-center rounded-lg transition-all duration-200 text-emerald-100 hover:text-white flex items-center justify-center gap-1";
+        }
+      });
+    }
+
+    // 2. Render 12 Months for Bengali Calendar
+    function renderBnMonthsGrid() {
+      const container = document.getElementById('bn-months-grid');
+      container.innerHTML = '';
+
+      bnMonths.forEach((m, idx) => {
+        const isCurrent = idx === currentBnMonthIndex;
+        const card = document.createElement('div');
+        card.className = `p-2.5 rounded-xl cursor-pointer transition-all border ${
+          isCurrent 
+            ? 'bg-emerald-50 border-emerald-600 ring-1 ring-emerald-500 shadow-xs' 
+            : 'bg-slate-50/70 border-slate-200 hover:border-emerald-300'
+        }`;
+        card.onclick = () => openMonthModal('bn', idx);
+
+        card.innerHTML = `
+          ${isCurrent ? '<span class="inline-block bg-emerald-700 text-white text-[8px] font-bold px-1.5 py-0.2 rounded mb-1">চলতি মাস</span>' : ''}
+          <div class="text-xs font-bold ${isCurrent ? 'text-emerald-900' : 'text-slate-800'}">${m.name}</div>
+          <div class="text-[10px] text-slate-500 font-medium">${toBn(m.days)} দিন</div>
+          <div class="text-[9px] text-slate-400">${m.season}</div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // 3. Render 12 Months for Hijri Calendar
+    function renderArMonthsGrid() {
+      const container = document.getElementById('ar-months-grid');
+      container.innerHTML = '';
+
+      hijriMonths.forEach((m, idx) => {
+        const isCurrent = idx === currentArMonthIndex;
+        const card = document.createElement('div');
+        card.className = `p-2.5 rounded-xl cursor-pointer transition-all border ${
+          isCurrent 
+            ? 'bg-emerald-50 border-emerald-600 ring-1 ring-emerald-500 shadow-xs' 
+            : 'bg-slate-50/70 border-slate-200 hover:border-emerald-300'
+        }`;
+        card.onclick = () => openMonthModal('ar', idx);
+
+        card.innerHTML = `
+          ${isCurrent ? '<span class="inline-block bg-emerald-700 text-white text-[8px] font-bold px-1.5 py-0.2 rounded mb-1">চলতি মাস</span>' : ''}
+          <div class="text-xs font-bold ${isCurrent ? 'text-emerald-900' : 'text-slate-800'}">${m.name}</div>
+          <div class="text-[10px] text-emerald-700 font-sans">${m.ar}</div>
+          <div class="text-[9px] text-slate-400">${toBn(m.days)} দিন</div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // 4. Render 12 Months for Gregorian Calendar
+    function renderEnMonthsGrid() {
+      const container = document.getElementById('en-months-grid');
+      container.innerHTML = '';
+
+      gregMonths.forEach((m, idx) => {
+        const isCurrent = idx === currentEnMonthIndex;
+        const card = document.createElement('div');
+        card.className = `p-2.5 rounded-xl cursor-pointer transition-all border ${
+          isCurrent 
+            ? 'bg-blue-50 border-blue-600 ring-1 ring-blue-500 shadow-xs' 
+            : 'bg-slate-50/70 border-slate-200 hover:border-blue-300'
+        }`;
+        card.onclick = () => openMonthModal('en', idx);
+
+        card.innerHTML = `
+          ${isCurrent ? '<span class="inline-block bg-blue-700 text-white text-[8px] font-bold px-1.5 py-0.2 rounded mb-1">চলতি মাস</span>' : ''}
+          <div class="text-xs font-bold ${isCurrent ? 'text-blue-950' : 'text-slate-800'}">${m.name}</div>
+          <div class="text-[10px] text-slate-500 font-sans">${m.en}</div>
+          <div class="text-[9px] text-slate-400">${toBn(m.days)} দিন</div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // 5. Render Seasons list
+    function renderSeasonsList() {
+      const container = document.getElementById('seasons-container');
+      const seasonsData = [
+        { icon: "☀️", name: "গ্রীষ্মকাল", months: "বৈশাখ ও জ্যৈষ্ঠ মাস", current: false },
+        { icon: "🌧️", name: "বর্ষাকাল", months: "আষাঢ় ও শ্রাবণ মাস", current: false },
+        { icon: "🌾", name: "শরৎকাল", months: "ভাদ্র ও আশ্বিন মাস", current: true },
+        { icon: "🍂", name: "হেমন্তকাল", months: "কার্তিক ও অগ্রহায়ণ মাস", current: false },
+        { icon: "❄️", name: "শীতকাল", months: "পৌষ ও মাঘ মাস", current: false },
+        { icon: "🌸", name: "বসন্তকাল", months: "ফাল্গুন ও চৈত্র মাস", current: false }
+      ];
+
+      container.innerHTML = seasonsData.map(s => `
+        <div class="flex justify-between items-center py-2 ${s.current ? 'bg-emerald-50/80 -mx-2 px-2 rounded-lg font-semibold text-emerald-950' : 'text-slate-700'}">
+          <div class="flex items-center gap-1.5">
+            <span>${s.icon}</span>
+            <span>${s.name}</span>
+            ${s.current ? '<span class="text-[9px] font-bold bg-emerald-700 text-white px-1.5 py-0.2 rounded ml-1">চলতি ঋতু</span>' : ''}
+          </div>
+          <span class="text-slate-500 text-[11px]">${s.months}</span>
+        </div>
+      `).join('');
+    }
+
+    // 6. Render Islamic Events list
+    function renderIslamicEvents() {
+      const container = document.getElementById('ar-events-list');
+      container.innerHTML = islamicEvents.map(e => `
+        <div class="flex items-start gap-2 py-1.5">
+          <span class="text-base mt-0.5">🌟</span>
+          <div>
+            <div class="font-bold text-slate-800">${e.title}</div>
+            <div class="text-[11px] text-slate-500">${e.desc}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Toggle Seasons Collapsible
+    let seasonsExpanded = true;
+    function toggleSeasons() {
+      seasonsExpanded = !seasonsExpanded;
+      const c = document.getElementById('seasons-container');
+      const icon = document.getElementById('seasons-toggle-icon');
+      if (seasonsExpanded) {
+        c.classList.remove('hidden');
+        icon.innerText = '▲';
+      } else {
+        c.classList.add('hidden');
+        icon.innerText = '▼';
+      }
+    }
+
+    // Fine-tune Hijri days
+    function adjustHijriDay(delta) {
+      hijriAdjustment = Math.max(-2, Math.min(2, hijriAdjustment + delta));
+      const txt = (hijriAdjustment > 0 ? '+' : '') + hijriAdjustment + ' দিন';
+      document.getElementById('ar-adjustment-text').innerText = txt;
+      document.getElementById('ar-hero-day').innerText = toBn(15 + hijriAdjustment);
+    }
+
+    // ================= MODAL LOGIC =================
+    let currentModalType = 'bn';
+    let currentModalMonthIdx = 0;
+    let selectedDay = 1;
+
+    function openMonthModal(type, monthIndex) {
+      currentModalType = type;
+      currentModalMonthIdx = monthIndex;
+      selectedDay = (type === 'bn' && monthIndex === currentBnMonthIndex) ? currentBnDay :
+                    (type === 'ar' && monthIndex === currentArMonthIndex) ? currentArDay :
+                    (type === 'en' && monthIndex === currentEnMonthIndex) ? currentEnDay : 1;
+
+      const modal = document.getElementById('calendar-modal');
+      const iconEl = document.getElementById('modal-icon');
+      const titleEl = document.getElementById('modal-title');
+      const subEl = document.getElementById('modal-subtitle');
+
+      let totalDays = 30;
+      let startDayOfWeek = 0; // 0: Sun ... 6: Sat
+
+      if (type === 'bn') {
+        const m = bnMonths[monthIndex];
+        totalDays = m.days;
+        iconEl.innerText = '🇧🇩';
+        titleEl.innerText = `${m.name}, ১৪৩৩ বঙ্গাব্দ`;
+        subEl.innerText = `${m.season} • ${toBn(m.days)} দিন`;
+        // Approximate weekday offset for demonstration
+        startDayOfWeek = (monthIndex * 2 + 6) % 7; 
+      } else if (type === 'ar') {
+        const m = hijriMonths[monthIndex];
+        totalDays = m.days;
+        iconEl.innerText = '🌙';
+        titleEl.innerText = `${m.name} (${m.ar}), ১৪৪৬ হিজরি`;
+        subEl.innerText = `হিজরি চান্দ্র মাস • ${toBn(m.days)} দিন`;
+        startDayOfWeek = (monthIndex * 3 + 2) % 7;
+      } else {
+        const m = gregMonths[monthIndex];
+        totalDays = m.days;
+        iconEl.innerText = '📅';
+        titleEl.innerText = `${m.name} (${m.en}), ২০২৬`;
+        subEl.innerText = `গ্রেগোরিয়ান ক্যালেন্ডার • ${toBn(m.days)} দিন`;
+        startDayOfWeek = (monthIndex * 2 + 4) % 7;
+      }
+
+      renderModalDaysGrid(totalDays, startDayOfWeek);
+      updateSelectedDayDetails(selectedDay, startDayOfWeek);
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('calendar-modal').classList.add('hidden');
+    }
+
+    function renderModalDaysGrid(totalDays, startDayOfWeek) {
+      const grid = document.getElementById('modal-days-grid');
+      grid.innerHTML = '';
+
+      // Blank slots before day 1
+      for (let i = 0; i < startDayOfWeek; i++) {
+        const blank = document.createElement('div');
+        blank.className = 'aspect-square';
+        grid.appendChild(blank);
+      }
+
+      // Day cells
+      for (let d = 1; d <= totalDays; d++) {
+        const weekday = (startDayOfWeek + d - 1) % 7;
+        const isWeekend = weekday === 5 || weekday === 6; // Fri or Sat
+        const isSelected = d === selectedDay;
+
+        const cell = document.createElement('div');
+        cell.className = `aspect-square flex flex-col items-center justify-center rounded-xl text-xs font-semibold cursor-pointer transition-all relative ${
+          isSelected 
+            ? 'bg-emerald-700 text-white font-extrabold shadow-sm ring-2 ring-emerald-500' 
+            : isWeekend 
+              ? 'bg-red-50/60 text-red-600 hover:bg-emerald-50' 
+              : 'bg-slate-50 text-slate-800 hover:bg-emerald-50'
+        }`;
+        cell.onclick = () => {
+          selectedDay = d;
+          renderModalDaysGrid(totalDays, startDayOfWeek);
+          updateSelectedDayDetails(d, startDayOfWeek);
+        };
+
+        cell.innerHTML = `<span>${toBn(d)}</span>`;
+        grid.appendChild(cell);
+      }
+    }
+
+    function updateSelectedDayDetails(d, startDayOfWeek) {
+      const weekdayIdx = (startDayOfWeek + d - 1) % 7;
+      const weekdays = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
+      const dayName = weekdays[weekdayIdx];
+      const isWeekend = weekdayIdx === 5 || weekdayIdx === 6;
+
+      const weekendTag = document.getElementById('modal-weekend-tag');
+      if (weekdayIdx === 5) {
+        weekendTag.innerText = "🕌 জুমু'আহ মুবারক";
+        weekendTag.className = "text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800";
+        weekendTag.classList.remove('hidden');
+      } else if (weekdayIdx === 6) {
+        weekendTag.innerText = "সাপ্তাহিক ছুটি";
+        weekendTag.className = "text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-100 text-red-700";
+        weekendTag.classList.remove('hidden');
+      } else {
+        weekendTag.classList.add('hidden');
+      }
+
+      // Title
+      let monthName = "";
+      if (currentModalType === 'bn') monthName = bnMonths[currentModalMonthIdx].name;
+      else if (currentModalType === 'ar') monthName = hijriMonths[currentModalMonthIdx].name;
+      else monthName = gregMonths[currentModalMonthIdx].name;
+
+      document.getElementById('modal-detail-primary').innerText = `${toBn(d)}ই ${monthName} (${dayName})`;
+
+      // Converted equivalents simulation
+      document.getElementById('detail-bn').innerText = `${toBn(d)} ভাদ্র`;
+      document.getElementById('detail-ar').innerText = `${toBn((d + 14) % 29 + 1)} সফর`;
+      document.getElementById('detail-en').innerText = `${d} Sep 2026`;
+
+      // Holiday Check
+      const holidayBadge = document.getElementById('modal-holiday-badge');
+      const holidayText = document.getElementById('modal-holiday-text');
+
+      if (currentModalType === 'bn' && currentModalMonthIdx === 0 && d === 1) {
+        holidayText.innerText = "পহেলা বৈশাখ (বাংলা নববর্ষ) 🎊";
+        holidayBadge.classList.remove('hidden');
+      } else if (currentModalType === 'ar' && currentModalMonthIdx === 0 && d === 10) {
+        holidayText.innerText = "পবিত্র আশুরা (রোজা ও দোয়া) 🕌";
+        holidayBadge.classList.remove('hidden');
+      } else if (currentModalType === 'en' && currentModalMonthIdx === 1 && d === 21) {
+        holidayText.innerText = "আন্তর্জাতিক মাতৃভাষা ও শহীদ দিবস 🌺";
+        holidayBadge.classList.remove('hidden');
+      } else {
+        holidayBadge.classList.add('hidden');
+      }
+    }
+
+    // Initial load
+    window.addEventListener('DOMContentLoaded', () => {
+      renderBnMonthsGrid();
+      renderArMonthsGrid();
+      renderEnMonthsGrid();
+      renderSeasonsList();
+      renderIslamicEvents();
+    });
+  </script>
+</body>
+</html>

@@ -110,6 +110,66 @@ class OfflineProgressRepository private constructor(context: Context) {
     recordActivityToday()
   }
 
+  /**
+   * Retrieves the best stars earned (0 to 3) for a specific mini-game level.
+   */
+  fun getGameLevelStars(gameType: GameType, levelId: Int): Int {
+    return prefs.getInt("minigame_${gameType.name}_stars_$levelId", 0)
+  }
+
+  /**
+   * Progressive Unlock Logic (Levels 1 to 20):
+   * Level 1 is unlocked by default.
+   * Subsequent levels unlock sequentially upon earning at least 1 star in the previous level.
+   */
+  fun isGameLevelUnlocked(gameType: GameType, levelId: Int): Boolean {
+    if (levelId == 1) return true
+    val prevStars = getGameLevelStars(gameType, levelId - 1)
+    return prevStars >= 1
+  }
+
+  /**
+   * Persists level completion, stars, XP, and coins for any of the mini-games.
+   */
+  fun completeGameLevel(
+    gameType: GameType,
+    levelId: Int,
+    starsEarned: Int,
+    pointsEarned: Int,
+    xpEarned: Int = 25
+  ) {
+    val currentBestStars = getGameLevelStars(gameType, levelId)
+    val newBestStars = maxOf(currentBestStars, starsEarned)
+    prefs.edit().putInt("minigame_${gameType.name}_stars_$levelId", newBestStars).apply()
+
+    userCoins += pointsEarned
+    userXp += xpEarned
+    userLevel = 1 + (userCoins / 300)
+
+    prefs.edit()
+      .putInt("user_coins", userCoins)
+      .putInt("user_xp", userXp)
+      .putInt("user_level", userLevel)
+      .apply()
+
+    recordActivityToday()
+  }
+
+  /**
+   * Computes total stars earned in this game out of 60 possible stars (20 levels * 3 stars).
+   */
+  fun getGameTotalStars(gameType: GameType): Int {
+    var total = 0
+    for (level in 1..20) {
+      total += getGameLevelStars(gameType, level)
+    }
+    return total
+  }
+
+  fun awardCoins(coins: Int) {
+    addCoins(coins)
+  }
+
   private fun saveUnlockedLevels() {
     val unlockedString = unlockedLevels.filter { it.value }.keys.sorted().joinToString(",")
     prefs.edit().putString("unlocked_levels", unlockedString).apply()

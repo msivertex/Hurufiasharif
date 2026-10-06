@@ -1,5 +1,8 @@
 package com.example
 
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -33,6 +36,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Check
@@ -40,6 +44,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -50,6 +55,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,6 +63,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -65,13 +72,16 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -97,11 +107,30 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import com.example.islamic.AsmaUlHusnaScreen
+import com.example.islamic.IslamicLocationService
+import com.example.islamic.IslamicOfflineRepository
 import com.example.islamic.IslamicSuiteScreen
 import com.example.islamic.IslamicSuiteTab
+import com.example.islamic.MultiCalendarScreen
+import com.example.islamic.LocationSettingsDialog
 import com.example.islamic.NextPrayerCompactWidget
+import com.example.islamic.PrayerTimesCalculator
+import com.example.islamic.QiblaCompassScreen
 import com.example.ui.theme.BackgroundGray
 import com.example.ui.theme.RoyalEmerald
+import kotlinx.coroutines.launch
+
+enum class HomeSubScreen {
+  ARABIC_ALPHABET,
+  GAME_SELECTOR,
+  KAIDA_EDUCATION,
+  AMPARA_SURAHS,
+  ASMA_UL_HUSNA,
+  SALAT_GUIDE,
+  HADITH_COLLECTION
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,551 +141,458 @@ fun HomeDashboardScreen(
   onSignOut: () -> Unit
 ) {
   val context = LocalContext.current
-  val soundManager = remember { SoundManager(context) }
+  val soundManager = remember { SoundManager.getInstance(context) }
   DisposableEffect(Unit) {
     onDispose { soundManager.release() }
   }
 
   val layoutDirection = if (selectedLang == "AR") LayoutDirection.Rtl else LayoutDirection.Ltr
-  var showLanguageMenu by remember { mutableStateOf(false) }
+  val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+  val scope = rememberCoroutineScope()
 
-  // Interactive user stats backed by OfflineProgressRepository
+  // Interactive user stats backed by OfflineProgressRepository & Islamic repository
   val progressRepo = remember { OfflineProgressRepository.getInstance(context) }
+  val islamicOfflineRepo = remember { IslamicOfflineRepository.getInstance(context) }
+
   val userCoins = progressRepo.userCoins
   val userLevel = progressRepo.userLevel
   val userStreak = progressRepo.userStreak
+
   var selectedLetterForDetail by remember { mutableStateOf<ArabicLetter?>(null) }
   var letterForMakhrajVisualizer by remember { mutableStateOf<ArabicLetter?>(null) }
   var showSettingsDialog by remember { mutableStateOf(false) }
   var activeGameModal by remember { mutableStateOf<GameMode?>(null) }
   var isLetterGridView by remember { mutableStateOf(true) }
   var currentBottomTab by remember { mutableStateOf(MainAppTab.HOME) }
-  var islamicCornerInitialTab by remember { mutableStateOf(IslamicSuiteTab.PRAYER_TIMES) }
+
+  var activeSubScreen by remember { mutableStateOf<HomeSubScreen?>(null) }
+  var showFullTimetableDialog by remember { mutableStateOf(false) }
+  var selectedDuaForDialog by remember { mutableStateOf<DailyDuaItem?>(null) }
+  var selectedDeedForDialog by remember { mutableStateOf<VirtuousDeedItem?>(null) }
+  var showLearningProgressDialog by remember { mutableStateOf(false) }
+  var showAzanSettingsDialog by remember { mutableStateOf(false) }
+  var showOfflineManagerDialog by remember { mutableStateOf(false) }
+  var showPrivacyPolicyDialog by remember { mutableStateOf(false) }
+  var showLanguageDialog by remember { mutableStateOf(false) }
+  var showLocationSettingsDialog by remember { mutableStateOf(false) }
+  var showAudioQariDialog by remember { mutableStateOf(false) }
+  var showFeedbackDialog by remember { mutableStateOf(false) }
+  var isAzanMuted by remember { mutableStateOf(islamicOfflineRepo.isAzanMuted) }
+
+  val locationService = remember { IslamicLocationService(context) }
+  var userLocationTrigger by remember { mutableIntStateOf(0) }
+
+  val locationPermissionLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.RequestMultiplePermissions()
+  ) { permissions ->
+    val granted = permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+      permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+    if (granted) {
+      locationService.fetchCurrentLocation(
+        onSuccess = { lat, lng, name, tz, isGps, autoMethod, autoJuristic ->
+          islamicOfflineRepo.saveLocation(lat, lng, name, tz, isGps, autoMethod, autoJuristic)
+          userLocationTrigger++
+        },
+        onFailure = {}
+      )
+    }
+  }
+
+  // Auto-sync GPS location on start if permission granted, or prompt for permission
+  LaunchedEffect(Unit) {
+    if (locationService.hasLocationPermission()) {
+      locationService.fetchCurrentLocation(
+        onSuccess = { lat, lng, name, tz, isGps, autoMethod, autoJuristic ->
+          islamicOfflineRepo.saveLocation(lat, lng, name, tz, isGps, autoMethod, autoJuristic)
+          userLocationTrigger++
+        },
+        onFailure = {}
+      )
+    } else {
+      locationPermissionLauncher.launch(
+        arrayOf(
+          android.Manifest.permission.ACCESS_FINE_LOCATION,
+          android.Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+      )
+    }
+  }
+
+  val prayerSchedule = remember(
+    userLocationTrigger,
+    islamicOfflineRepo.latitude,
+    islamicOfflineRepo.longitude,
+    islamicOfflineRepo.timezoneHours,
+    islamicOfflineRepo.calculationMethod,
+    islamicOfflineRepo.juristicMethod,
+    islamicOfflineRepo.locationName,
+    islamicOfflineRepo.isGpsLocated
+  ) {
+    PrayerTimesCalculator.calculate(
+      latitude = islamicOfflineRepo.latitude,
+      longitude = islamicOfflineRepo.longitude,
+      timezoneOffset = islamicOfflineRepo.timezoneHours,
+      locationName = islamicOfflineRepo.locationName,
+      method = islamicOfflineRepo.calculationMethod,
+      juristicMethod = islamicOfflineRepo.juristicMethod,
+      isGpsLocated = islamicOfflineRepo.isGpsLocated
+    )
+  }
+
+  // When any game mode is launched, display the immersive Full-Screen 20-Level Selection Roadmap
+  activeGameModal?.let { game ->
+    FullScreenGameRoadmap(
+      gameMode = game,
+      selectedLang = selectedLang,
+      soundManager = soundManager,
+      onExit = { activeGameModal = null }
+    )
+    return
+  }
 
   CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
-    Scaffold(
-      containerColor = BackgroundGray,
-      bottomBar = {
-        HurufiaBottomNavigationBar(
-          currentTab = currentBottomTab,
+    ModalNavigationDrawer(
+      drawerState = drawerState,
+      drawerContent = {
+        HurufiaNavigationDrawerContent(
           selectedLang = selectedLang,
-          onTabSelected = { tab ->
-            soundManager.playSuccessChime()
-            currentBottomTab = tab
-          }
-        )
-      }
-    ) { persistentScaffoldPadding ->
-      Box(
-        modifier = Modifier
-          .fillMaxSize()
-          .padding(bottom = persistentScaffoldPadding.calculateBottomPadding())
-      ) {
-        Crossfade(
-          targetState = currentBottomTab,
-          animationSpec = tween(durationMillis = 180),
-          label = "main_tabs_crossfade"
-        ) { tab ->
-          when (tab) {
-            MainAppTab.HOME -> {
-              Scaffold(
-              containerColor = BackgroundGray,
-      topBar = {
-        TopAppBar(
-          title = {
-            Text(
-              text = AppStrings.getAppName(selectedLang),
-              style = TextStyle(
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                fontSize = 20.sp,
-                letterSpacing = if (selectedLang == "EN") 1.2.sp else 0.sp
-              )
-            )
+          currentVoiceGender = soundManager.currentVoiceGender,
+          isQuizHintsEnabled = soundManager.beginnerHintsEnabledState,
+          onQuizHintsChange = { enabled ->
+            soundManager.setBeginnerHintsEnabled(enabled)
           },
-          colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = RoyalEmerald
-          ),
-          actions = {
-            // Language selector dropdown on top right
-            Box {
-              Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                  .clip(RoundedCornerShape(8.dp))
-                  .clickable { showLanguageMenu = true }
-                  .padding(horizontal = 8.dp, vertical = 6.dp)
-                  .testTag("home_language_dropdown")
-              ) {
-                Icon(
-                  imageVector = Icons.Default.Language,
-                  contentDescription = "Language",
-                  tint = Color.White
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                  text = selectedLang,
-                  style = TextStyle(
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                  )
-                )
-              }
-
-              DropdownMenu(
-                expanded = showLanguageMenu,
-                onDismissRequest = { showLanguageMenu = false },
-                modifier = Modifier
-                  .background(RoyalEmerald)
-                  .testTag("home_lang_menu")
-              ) {
-                listOf("BN", "EN", "AR").forEach { lang ->
-                  val label = when (lang) {
-                    "BN" -> "BN (বাংলা)"
-                    "AR" -> "AR (العربية)"
-                    else -> "EN (English)"
-                  }
-                  DropdownMenuItem(
-                    text = {
-                      Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                      ) {
-                        Text(
-                          text = label,
-                          style = TextStyle(
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                          )
-                        )
-                        if (selectedLang == lang) {
-                          Spacer(modifier = Modifier.width(8.dp))
-                          Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Selected",
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
-                          )
-                        }
-                      }
-                    },
-                    onClick = {
-                      onLanguageChange(lang)
-                      showLanguageMenu = false
-                    }
+          isDarkModeEnabled = soundManager.darkModeEnabledState,
+          onDarkModeChange = { enabled ->
+            soundManager.setDarkModeEnabled(enabled)
+          },
+          isGpsLocated = islamicOfflineRepo.isGpsLocated,
+          locationName = islamicOfflineRepo.locationName,
+          onItemClick = { dest ->
+            scope.launch { drawerState.close() }
+            when (dest) {
+              DrawerDestination.LANGUAGE -> showLanguageDialog = true
+              DrawerDestination.LOCATION -> showLocationSettingsDialog = true
+              DrawerDestination.NOTIFICATION_AZAN -> showAzanSettingsDialog = true
+              DrawerDestination.AUDIO_QARI -> showAudioQariDialog = true
+              DrawerDestination.OFFLINE_MANAGER -> showOfflineManagerDialog = true
+              DrawerDestination.SHARE_APP -> {
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                  type = "text/plain"
+                  putExtra(
+                    Intent.EXTRA_TEXT,
+                    "হরুফিয়া শরিফ (HURUFIA SHARIF) - আরবি হরফ ও কুরআন শিক্ষা অ্যাপ! অফলাইনে নামাজ সময় ও তাজবীদ শিখুন।"
                   )
                 }
+                context.startActivity(Intent.createChooser(shareIntent, "শেয়ার করুন"))
               }
+              DrawerDestination.RATE_US -> {
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                  type = "text/plain"
+                  putExtra(Intent.EXTRA_TEXT, "হরুফিয়া শরিফ অ্যাপটি অত্যন্ত উপকারী ও সমৃদ্ধ একটি ইসলামিক প্ল্যাটফর্ম!")
+                }
+                context.startActivity(Intent.createChooser(shareIntent, "রেটিং ও রিভিউ"))
+              }
+              DrawerDestination.FEEDBACK -> showFeedbackDialog = true
+              DrawerDestination.PRIVACY_POLICY -> showPrivacyPolicyDialog = true
             }
-
-            IconButton(
-              onClick = {
-                soundManager.playSuccessChime()
-                islamicCornerInitialTab = IslamicSuiteTab.PRAYER_TIMES
-                currentBottomTab = MainAppTab.ISLAMIC_CORNER
-              },
-              modifier = Modifier.testTag("home_islamic_suite_button")
-            ) {
-              Text(text = "🕌", fontSize = 18.sp)
-            }
-
-            IconButton(
-              onClick = {
-                soundManager.playSuccessChime()
-                currentBottomTab = MainAppTab.SETTINGS
-              },
-              modifier = Modifier.testTag("home_settings_button")
-            ) {
-              Icon(
-                imageVector = Icons.Default.Settings,
-                contentDescription = "Settings",
-                tint = Color.White
-              )
-            }
-
-            IconButton(
-              onClick = onSignOut,
-              modifier = Modifier.testTag("home_logout_button")
-            ) {
-              Icon(
-                imageVector = Icons.AutoMirrored.Filled.Logout,
-                contentDescription = "Sign Out",
-                tint = Color.White.copy(alpha = 0.9f)
-              )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
           }
         )
       }
-    ) { homePadding ->
-      Column(
-        modifier = Modifier
-          .fillMaxSize()
-          .padding(homePadding)
-          .statusBarsPadding()
-          .imePadding()
-          .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
-      ) {
-        Column(
-          modifier = Modifier
-            .fillMaxWidth()
-            .widthIn(max = 680.dp)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-          horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-          // 2. User Stats Bar Card (Level 1, 250 ⭐, 3 Days 🔥)
-          UserStatsBarCard(
-            level = userLevel,
-            coins = userCoins,
-            streak = userStreak,
-            selectedLang = selectedLang,
-            modifier = Modifier.fillMaxWidth()
-          )
-
-          Spacer(modifier = Modifier.height(14.dp))
-
-          // 3. Compact Next Prayer & Islamic Utility Widget
-          NextPrayerCompactWidget(
-            selectedLang = selectedLang,
-            onOpenSuite = { tab ->
-              soundManager.playSuccessChime()
-              islamicCornerInitialTab = tab
-              currentBottomTab = MainAppTab.ISLAMIC_CORNER
-            },
-            modifier = Modifier.fillMaxWidth()
-          )
-
-          Spacer(modifier = Modifier.height(14.dp))
-
-          // Hero Graphic Banner with glossy gradient, Islamic geometric art & CTA
-          DashboardHeroBanner(
-            selectedLang = selectedLang,
-            onPracticeClick = {
-              soundManager.playSuccessChime()
-              currentBottomTab = MainAppTab.QURAN_LEARNING
-            }
-          )
-
-          Spacer(modifier = Modifier.height(20.dp))
-
-          // 3. Game Selector Menu Section Header
-          SectionHeader(
-            title = when (selectedLang) {
-              "EN" -> "Select Game Mode"
-              "AR" -> "اختر نمط اللعبة"
-              else -> "গেম মোড নির্বাচন করুন"
-            },
-            subtitle = when (selectedLang) {
-              "EN" -> "5 Interactive 3D learning adventures"
-              "AR" -> "٥ أنماط تفاعلية لتعلم الحروف"
-              else -> "৫টি আকর্ষণীয় ৩ডি গেমিফাইড অ্যাডভেঞ্চার"
-            }
-          )
-
-          Spacer(modifier = Modifier.height(12.dp))
-
-          // 3. Game Selector Cards
-          GameRepository.gameModes.forEach { gameMode ->
-            GameModeCard3D(
-              gameMode = gameMode,
-              selectedLang = selectedLang,
-              onPlayClick = {
-                soundManager.playSuccessChime()
-                if (gameMode.type == GameType.SHAPE_MASTER_PATH) {
-                  currentBottomTab = MainAppTab.QURAN_LEARNING
-                } else {
-                  activeGameModal = gameMode
-                }
+    ) {
+      Scaffold(
+        containerColor = if (soundManager.darkModeEnabledState) Color(0xFF0B1320) else BackgroundGray,
+        topBar = {
+          if (activeSubScreen == null) {
+            TopAppBar(
+              title = {
+                Text(
+                  text = AppStrings.getAppName(selectedLang),
+                  style = TextStyle(
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    letterSpacing = if (selectedLang == "EN") 1.2.sp else 0.sp
+                  ),
+                  modifier = Modifier.testTag("app_title")
+                )
               },
-              modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-          }
-
-          Spacer(modifier = Modifier.height(14.dp))
-
-          // 3D Makhraj Visualizer Feature Banner
-          Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-            border = BorderStroke(1.5.dp, Color(0xFF10B981).copy(alpha = 0.5f)),
-            modifier = Modifier
-              .fillMaxWidth()
-              .clickable {
-                letterForMakhrajVisualizer = ArabicAlphabetRepository.letters.first()
-              }
-              .testTag("makhraj_visualizer_banner")
-          ) {
-            Row(
-              modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-              Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically
-              ) {
-                Box(
-                  modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape)
-                    .background(
-                      Brush.radialGradient(
-                        colors = listOf(Color(0xFF10B981).copy(alpha = 0.3f), Color.Transparent)
-                      )
-                    )
-                    .border(2.dp, Color(0xFF10B981), CircleShape),
-                  contentAlignment = Alignment.Center
+              colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = RoyalEmerald
+              ),
+              actions = {
+                IconButton(
+                  onClick = {
+                    scope.launch { drawerState.open() }
+                  },
+                  modifier = Modifier.testTag("home_hamburger_menu_button")
                 ) {
                   Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = null,
-                    tint = Color(0xFF34D399),
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Navigation Drawer Menu",
+                    tint = Color.White,
                     modifier = Modifier.size(26.dp)
                   )
                 }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column {
-                  Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                      text = when (selectedLang) {
-                        "EN" -> "3D Makhraj Visualizer"
-                        "AR" -> "المجسم ثلاثي الأبعاد للمخارج"
-                        else -> "মাখরাজ ৩ডি ভিজ্যুয়ালাইজার"
-                      },
-                      style = TextStyle(
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                      )
+              }
+            )
+          }
+        },
+        bottomBar = {
+          if (activeSubScreen == null) {
+            HurufiaBottomNavigationBar(
+              currentTab = currentBottomTab,
+              selectedLang = selectedLang,
+              onTabSelected = { tab ->
+                soundManager.playSuccessChime()
+                currentBottomTab = tab
+              }
+            )
+          }
+        }
+      ) { persistentScaffoldPadding ->
+        Box(
+          modifier = Modifier
+            .fillMaxSize()
+            .padding(
+              top = if (activeSubScreen == null) persistentScaffoldPadding.calculateTopPadding() else 0.dp,
+              bottom = if (activeSubScreen == null) persistentScaffoldPadding.calculateBottomPadding() else 0.dp
+            )
+        ) {
+          Crossfade(
+            targetState = currentBottomTab,
+            animationSpec = tween(durationMillis = 180),
+            label = "main_tabs_crossfade"
+          ) { tab ->
+            when (tab) {
+              MainAppTab.HOME -> {
+                when (activeSubScreen) {
+                  HomeSubScreen.ARABIC_ALPHABET -> {
+                    ArabicAlphabetFullScreen(
+                      selectedLang = selectedLang,
+                      soundManager = soundManager,
+                      onBack = { activeSubScreen = null }
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Surface(
-                      shape = RoundedCornerShape(4.dp),
-                      color = Color(0xFF10B981).copy(alpha = 0.2f),
-                      border = BorderStroke(0.5.dp, Color(0xFF10B981))
+                  }
+                  HomeSubScreen.GAME_SELECTOR -> {
+                    GameSelectorFullScreen(
+                      selectedLang = selectedLang,
+                      soundManager = soundManager,
+                      onBack = { activeSubScreen = null },
+                      onSelectGame = { gameMode ->
+                        activeGameModal = gameMode
+                      }
+                    )
+                  }
+                  HomeSubScreen.KAIDA_EDUCATION -> {
+                    KaidaEducationScreen(
+                      selectedLang = selectedLang,
+                      onLanguageChange = onLanguageChange,
+                      soundManager = soundManager,
+                      onBackToDashboard = { activeSubScreen = null }
+                    )
+                  }
+                  HomeSubScreen.AMPARA_SURAHS -> {
+                    AmparaSurahScreen(
+                      selectedLang = selectedLang,
+                      onLanguageChange = onLanguageChange,
+                      soundManager = soundManager,
+                      onBackToDashboard = { activeSubScreen = null }
+                    )
+                  }
+                  HomeSubScreen.ASMA_UL_HUSNA -> {
+                    AsmaUlHusnaFullScreen(
+                      selectedLang = selectedLang,
+                      onBack = { activeSubScreen = null }
+                    )
+                  }
+                  HomeSubScreen.SALAT_GUIDE -> {
+                    SalatGuideScreen(
+                      selectedLang = selectedLang,
+                      onBack = { activeSubScreen = null }
+                    )
+                  }
+                  HomeSubScreen.HADITH_COLLECTION -> {
+                    HadithCollectionScreen(
+                      selectedLang = selectedLang,
+                      onBack = { activeSubScreen = null }
+                    )
+                  }
+                  null -> {
+                    Column(
+                      modifier = Modifier
+                        .fillMaxSize()
+                        .imePadding()
+                        .verticalScroll(rememberScrollState()),
+                      horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                      Text(
-                        text = "3D",
-                        style = TextStyle(
-                          fontSize = 9.sp,
-                          fontWeight = FontWeight.ExtraBold,
-                          color = Color(0xFF34D399)
-                        ),
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                      )
-                    }
-                  }
+                      Column(
+                        modifier = Modifier
+                          .fillMaxWidth()
+                          .widthIn(max = 680.dp)
+                          .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                      ) {
+                          // 1. PRAYER TIME CARD (SALAT TIME) WITH ACTIVE LIVE COUNTDOWN & AZAN TOGGLE
+                          PrayerTimeCard(
+                            prayerSchedule = prayerSchedule,
+                            selectedLang = selectedLang,
+                            offlineRepo = islamicOfflineRepo,
+                            onOpenFullTimetable = { showFullTimetableDialog = true },
+                            onMuteToggle = { muted ->
+                              isAzanMuted = muted
+                              islamicOfflineRepo.isAzanMuted = muted
+                              if (muted) soundManager.playTone(android.media.ToneGenerator.TONE_PROP_NACK)
+                              else soundManager.playSuccessChime()
+                            },
+                            onRefreshLocation = {
+                              showLocationSettingsDialog = true
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                          )
 
-                  Spacer(modifier = Modifier.height(2.dp))
+                          Spacer(modifier = Modifier.height(14.dp))
 
-                  Text(
-                    text = when (selectedLang) {
-                      "EN" -> "Explore vocal tract, tongue motion & airflow in 3D"
-                      "AR" -> "استكشف حركة اللسان والشفتين ومسار تدفق الهواء"
-                      else -> "কণ্ঠনালী, জিহ্বার স্পর্শ ও বায়ুপ্রবাহ ৩ডি কোণে দেখুন"
-                    },
-                    style = TextStyle(
-                      fontSize = 11.sp,
-                      color = Color(0xFF94A3B8),
-                      lineHeight = 14.sp
-                    )
-                  )
-                }
-              }
+                          // 2. INTERACTIVE CAROUSEL SLIDER (AD & CONTENT CORNER)
+                          InteractiveContentCarousel(
+                            selectedLang = selectedLang,
+                            onSlideClick = { slide ->
+                              when (slide) {
+                                is CarouselSlide.ShapeMaster -> {
+                                  soundManager.playSuccessChime()
+                                  activeSubScreen = HomeSubScreen.KAIDA_EDUCATION
+                                }
+                                is CarouselSlide.MakhrajVisualizer -> {
+                                  soundManager.playSuccessChime()
+                                  letterForMakhrajVisualizer = ArabicAlphabetRepository.letters.first()
+                                }
+                                is CarouselSlide.DailyDua -> {
+                                  soundManager.playSuccessChime()
+                                  selectedDuaForDialog = HadithRepository.dailyDuas.first()
+                                }
+                                is CarouselSlide.VirtuousDeed -> {
+                                  soundManager.playSuccessChime()
+                                  selectedDeedForDialog = HadithRepository.dailyDeeds.first()
+                                }
+                                is CarouselSlide.ProPromotion -> {
+                                  soundManager.playSuccessChime()
+                                  showOfflineManagerDialog = true
+                                }
+                              }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                          )
 
-              Button(
-                onClick = {
-                  letterForMakhrajVisualizer = ArabicAlphabetRepository.letters.first()
-                },
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = RoyalEmerald),
-                modifier = Modifier
-                  .padding(start = 6.dp)
-                  .testTag("open_makhraj_banner_btn")
-              ) {
-                Text(
-                  text = when (selectedLang) { "EN" -> "View" "AR" -> "عرض" else -> "দেখুন" },
-                  style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                )
-              }
-            }
-          }
+                          Spacer(modifier = Modifier.height(18.dp))
 
-          Spacer(modifier = Modifier.height(18.dp))
+                          // 3. MAIN GRID MENU HEADER
+                          Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                          ) {
+                            Text(
+                              text = if (selectedLang == "BN") "প্রধান ফিচারসমূহ" else "Main Features",
+                              style = TextStyle(
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF1E293B)
+                              )
+                            )
+                            Text(
+                              text = if (selectedLang == "BN") "৬টি বিভাগ" else "6 Categories",
+                              style = TextStyle(
+                                fontSize = 12.sp,
+                                color = Color(0xFF64748B),
+                                fontWeight = FontWeight.Medium
+                              )
+                            )
+                          }
 
-          // 4. Interactive Letter Chart Quick-Access Section Header
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-          ) {
-            Column(modifier = Modifier.weight(1f)) {
-              Text(
-                text = when (selectedLang) {
-                  "EN" -> "Interactive Letter Chart (29 Letters)"
-                  "AR" -> "جدول الحروف التفاعلي (٢٩ حرفاً)"
-                  else -> "ইন্টারেক্টিভ হরফ চার্ট (২৯টি হরফ)"
-                },
-                style = TextStyle(
-                  fontSize = 18.sp,
-                  fontWeight = FontWeight.Bold,
-                  color = RoyalEmerald
-                )
-              )
-              Text(
-                text = when (selectedLang) {
-                  "EN" -> "Tap any letter to view its 4 positional forms"
-                  "AR" -> "اضغط على أي حرف لعرض أشكاله الأربعة"
-                  else -> "যেকোনো হরফে ট্যাপ করে ৪টি রূপ ও মাখরাজ দেখুন"
-                },
-                style = TextStyle(
-                  fontSize = 12.sp,
-                  color = Color(0xFF64748B)
-                )
-              )
-            }
+                          Spacer(modifier = Modifier.height(10.dp))
 
-            // View toggle (Horizontal Carousel vs Grid)
-            IconButton(
-              onClick = { isLetterGridView = !isLetterGridView },
-              modifier = Modifier
-                .clip(CircleShape)
-                .background(Color.White)
-                .border(1.dp, Color(0xFFE2E8F0), CircleShape)
-            ) {
-              Icon(
-                imageVector = if (isLetterGridView) Icons.Default.ViewCarousel else Icons.Default.GridView,
-                contentDescription = "Toggle View",
-                tint = RoyalEmerald
-              )
-            }
-          }
+                          // 4. MAIN GRID MENU (2 COLUMNS, 6 FEATURE CARDS)
+                          MainGridMenu(
+                            selectedLang = selectedLang,
+                            onItemClick = { itemId ->
+                              soundManager.playSuccessChime()
+                              when (itemId) {
+                                "arbi_horof" -> activeSubScreen = HomeSubScreen.ARABIC_ALPHABET
+                                "game_mode" -> activeSubScreen = HomeSubScreen.GAME_SELECTOR
+                                "kaida_education", "quran_learning" -> activeSubScreen = HomeSubScreen.KAIDA_EDUCATION
+                                "ampara_surahs" -> activeSubScreen = HomeSubScreen.AMPARA_SURAHS
+                                "asmaul_husna" -> activeSubScreen = HomeSubScreen.ASMA_UL_HUSNA
+                                "salat_guide" -> activeSubScreen = HomeSubScreen.SALAT_GUIDE
+                                "hadith_collection" -> activeSubScreen = HomeSubScreen.HADITH_COLLECTION
+                              }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                          )
 
-          Spacer(modifier = Modifier.height(12.dp))
-
-          // 4. Interactive Letter Chart View (Strict Right-to-Left RTL Layout)
-          CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            if (!isLetterGridView) {
-              // Horizontal Carousel (RTL)
-              LazyRow(
-                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .testTag("letters_carousel")
-              ) {
-                items(ArabicAlphabetRepository.letters) { letter ->
-                  LetterCardItem(
-                    letter = letter,
-                    selectedLang = selectedLang,
-                    onClick = {
-                      soundManager.speakArabicOrBeep(letter.letter)
-                      selectedLetterForDetail = letter
-                    }
-                  )
-                }
-              }
-            } else {
-              // 29 Arabic Letters Grid View (Strict RTL: Top-Right starts with Alif, followed by Ba to its left)
-              Column(
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .testTag("letters_grid"),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-              ) {
-                val letterRows = remember { ArabicAlphabetRepository.letters.chunked(5) }
-                letterRows.forEach { rowLetters ->
-                  Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                    verticalAlignment = Alignment.CenterVertically
-                  ) {
-                    rowLetters.forEach { letter ->
-                      LetterGridItem(
-                        letter = letter,
-                        selectedLang = selectedLang,
-                        onClick = {
-                          soundManager.speakArabicOrBeep(letter.letter)
-                          selectedLetterForDetail = letter
+                          Spacer(modifier = Modifier.height(28.dp))
                         }
-                      )
+                      }
                     }
                   }
                 }
+              MainAppTab.CALENDAR -> {
+                MultiCalendarScreen(
+                  selectedLang = selectedLang,
+                  dayAdjustment = islamicOfflineRepo.hijriDayAdjustment,
+                  onDayAdjustmentChange = { adj ->
+                    islamicOfflineRepo.hijriDayAdjustment = adj
+                  }
+                )
+              }
+              MainAppTab.QIBLA -> {
+                QiblaCompassScreen(
+                  latitude = islamicOfflineRepo.latitude,
+                  longitude = islamicOfflineRepo.longitude,
+                  locationName = islamicOfflineRepo.locationName,
+                  selectedLang = selectedLang,
+                  onRequestGps = {
+                    if (locationService.hasLocationPermission()) {
+                      locationService.fetchCurrentLocation(
+                        onSuccess = { lat, lng, name, tz, isGps ->
+                          islamicOfflineRepo.saveLocation(lat, lng, name, tz, isGps)
+                          userLocationTrigger++
+                          soundManager.playSuccessChime()
+                        },
+                        onFailure = {}
+                      )
+                    } else {
+                      locationPermissionLauncher.launch(
+                        arrayOf(
+                          android.Manifest.permission.ACCESS_FINE_LOCATION,
+                          android.Manifest.permission.ACCESS_COARSE_LOCATION
+                        )
+                      )
+                    }
+                  }
+                )
+              }
+              MainAppTab.PROFILE -> {
+                SettingsTabScreen(
+                  selectedLang = selectedLang,
+                  onLanguageChange = onLanguageChange,
+                  userEmail = userEmail,
+                  userLevel = userLevel,
+                  userCoins = userCoins,
+                  userStreak = userStreak,
+                  soundManager = soundManager,
+                  onOpenMakhrajVisualizer = {
+                    letterForMakhrajVisualizer = ArabicAlphabetRepository.letters.first()
+                  },
+                  onSignOut = onSignOut
+                )
               }
             }
           }
-
-          Spacer(modifier = Modifier.height(28.dp))
         }
       }
     }
   }
-  MainAppTab.QURAN_LEARNING -> {
-    ShapeMasterRoadmapScreen(
-      selectedLang = selectedLang,
-      onLanguageChange = onLanguageChange,
-      soundManager = soundManager,
-      showBackButton = false,
-      onBackToDashboard = { currentBottomTab = MainAppTab.HOME },
-      onLevelStatsUpdated = { _, _ ->
-        // Automatically persisted and synchronized in progressRepo
-      }
-    )
-  }
-  MainAppTab.ISLAMIC_CORNER -> {
-    IslamicSuiteScreen(
-      initialTab = islamicCornerInitialTab,
-      selectedLang = selectedLang,
-      showBackButton = false,
-      onBack = { currentBottomTab = MainAppTab.HOME }
-    )
-  }
-  MainAppTab.SETTINGS -> {
-    SettingsTabScreen(
-      selectedLang = selectedLang,
-      onLanguageChange = onLanguageChange,
-      userEmail = userEmail,
-      userLevel = userLevel,
-      userCoins = userCoins,
-      userStreak = userStreak,
-      soundManager = soundManager,
-      onOpenMakhrajVisualizer = {
-        letterForMakhrajVisualizer = ArabicAlphabetRepository.letters.first()
-      },
-      onSignOut = onSignOut
-    )
-  }
-}
-      }
-    }
-  }
-}
 
-  // 4. Detail Pop-up showing 4 forms of selected letter
-  selectedLetterForDetail?.let { letter ->
-    LetterDetailDialog(
-      letter = letter,
-      selectedLang = selectedLang,
-      soundManager = soundManager,
-      onOpenMakhraj = { makhrajLetter ->
-        letterForMakhrajVisualizer = makhrajLetter
-      },
-      onDismiss = { selectedLetterForDetail = null }
-    )
-  }
+  // Detail Pop-up modal removed in favor of 5-Tab Arabic Alphabet Studio
 
   // 5. 3D Makhraj Visualizer Modal
   letterForMakhrajVisualizer?.let { letter ->
@@ -681,17 +617,195 @@ fun HomeDashboardScreen(
     )
   }
 
-  // Playable interactive modal for each Game Mode
-  activeGameModal?.let { game ->
-    GameInteractiveModal(
-      game = game,
+  // Islamic & Utility Dialogs
+  if (showFullTimetableDialog) {
+    FullTimetableDialog(
+      prayerSchedule = prayerSchedule,
       selectedLang = selectedLang,
-      soundManager = soundManager,
-      onCoinsEarned = { earned ->
-        progressRepo.addCoins(earned)
-      },
-      onDismiss = { activeGameModal = null }
+      onDismiss = { showFullTimetableDialog = false }
     )
+  }
+
+  selectedDuaForDialog?.let { dua ->
+    DailyDuaDialog(
+      dua = dua,
+      selectedLang = selectedLang,
+      onDismiss = { selectedDuaForDialog = null }
+    )
+  }
+
+  selectedDeedForDialog?.let { deed ->
+    VirtuousDeedDialog(
+      deed = deed,
+      selectedLang = selectedLang,
+      onDismiss = { selectedDeedForDialog = null }
+    )
+  }
+
+  if (showLearningProgressDialog) {
+    LearningProgressDialog(
+      progressRepo = progressRepo,
+      selectedLang = selectedLang,
+      onDismiss = { showLearningProgressDialog = false }
+    )
+  }
+
+  if (showAzanSettingsDialog) {
+    AzanNotificationSettingsDialog(
+      offlineRepo = islamicOfflineRepo,
+      selectedLang = selectedLang,
+      onDismiss = { showAzanSettingsDialog = false }
+    )
+  }
+
+  if (showOfflineManagerDialog) {
+    OfflineManagerDialog(
+      selectedLang = selectedLang,
+      onDismiss = { showOfflineManagerDialog = false }
+    )
+  }
+
+  if (showPrivacyPolicyDialog) {
+    PrivacyPolicyDialog(
+      selectedLang = selectedLang,
+      onDismiss = { showPrivacyPolicyDialog = false }
+    )
+  }
+
+  if (showLanguageDialog) {
+    LanguageSelectionDialog(
+      selectedLang = selectedLang,
+      onLanguageSelected = { newLang ->
+        onLanguageChange(newLang)
+      },
+      onDismiss = { showLanguageDialog = false }
+    )
+  }
+
+  if (showLocationSettingsDialog) {
+    LocationSettingsDialog(
+      selectedLang = selectedLang,
+      offlineRepo = islamicOfflineRepo,
+      locationService = locationService,
+      soundManager = soundManager,
+      onLocationUpdated = {
+        userLocationTrigger++
+      },
+      onDismiss = { showLocationSettingsDialog = false }
+    )
+  }
+
+  if (showAudioQariDialog) {
+    AudioQariSelectionDialog(
+      soundManager = soundManager,
+      selectedLang = selectedLang,
+      onDismiss = { showAudioQariDialog = false }
+    )
+  }
+
+  if (showFeedbackDialog) {
+    FeedbackReportDialog(
+      selectedLang = selectedLang,
+      onDismiss = { showFeedbackDialog = false }
+    )
+  }
+}
+
+
+
+/**
+ * Full screen for Game Mode selector when tapped from Home Grid
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GameSelectorFullScreen(
+  selectedLang: String,
+  soundManager: SoundManager,
+  onBack: () -> Unit,
+  onSelectGame: (GameMode) -> Unit
+) {
+  Scaffold(
+    containerColor = BackgroundGray,
+    topBar = {
+      TopAppBar(
+        title = {
+          Text(
+            text = when (selectedLang) {
+              "EN" -> "Select Game Mode"
+              "AR" -> "أنماط الألعاب التعليمية"
+              else -> "গেম মোড সমূহ"
+            },
+            style = TextStyle(
+              fontWeight = FontWeight.Bold,
+              color = Color.White,
+              fontSize = 18.sp
+            )
+          )
+        },
+        navigationIcon = {
+          IconButton(onClick = onBack) {
+            Icon(
+              imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+              contentDescription = "Back",
+              tint = Color.White
+            )
+          }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = RoyalEmerald)
+      )
+    }
+  ) { padding ->
+    Column(
+      modifier = Modifier
+        .fillMaxSize()
+        .padding(padding)
+        .verticalScroll(rememberScrollState())
+        .padding(16.dp),
+      horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+      Text(
+        text = when (selectedLang) {
+          "EN" -> "5 Interactive Gamified Learning Modes"
+          "AR" -> "٥ أنماط تفاعلية لتعلم الحروف والتجويد"
+          else -> "৫টি আকর্ষণীয় শিক্ষামূলক গেম ও কুইজ"
+        },
+        style = TextStyle(
+          fontSize = 16.sp,
+          fontWeight = FontWeight.Bold,
+          color = RoyalEmerald
+        ),
+        modifier = Modifier.fillMaxWidth()
+      )
+
+      Spacer(modifier = Modifier.height(4.dp))
+
+      Text(
+        text = when (selectedLang) {
+          "EN" -> "Play, earn stars, and master Arabic letters effortlessly!"
+          "AR" -> "العب واجمع النجوم وأتقن الحروف العربية بسهولة!"
+          else -> "খেলুন, পয়েন্ট অর্জন করুন এবং সহজে আরবি হরফ শিখুন!"
+        },
+        style = TextStyle(fontSize = 13.sp, color = Color(0xFF64748B)),
+        modifier = Modifier.fillMaxWidth()
+      )
+
+      Spacer(modifier = Modifier.height(16.dp))
+
+      GameRepository.gameModes.forEach { gameMode ->
+        GameModeCard3D(
+          gameMode = gameMode,
+          selectedLang = selectedLang,
+          onPlayClick = {
+            soundManager.playSuccessChime()
+            onSelectGame(gameMode)
+          },
+          modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(14.dp))
+      }
+
+      Spacer(modifier = Modifier.height(20.dp))
+    }
   }
 }
 
@@ -2557,5 +2671,39 @@ fun SectionHeader(
         color = Color(0xFF64748B)
       )
     )
+  }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AsmaUlHusnaFullScreen(
+  selectedLang: String,
+  onBack: () -> Unit
+) {
+  Scaffold(
+    topBar = {
+      TopAppBar(
+        title = {
+          Text(
+            text = if (selectedLang == "BN") "আল্লাহর ৯৯টি গুণবাচক নাম" else "99 Names of Allah",
+            style = TextStyle(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+          )
+        },
+        navigationIcon = {
+          IconButton(onClick = onBack) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+          }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = RoyalEmerald)
+      )
+    }
+  ) { padding ->
+    Box(
+      modifier = Modifier
+        .fillMaxSize()
+        .padding(padding)
+    ) {
+      AsmaUlHusnaScreen(selectedLang = selectedLang)
+    }
   }
 }
