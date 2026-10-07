@@ -1019,6 +1019,15 @@ fun HurufiaNavigationDrawerContent(
         onClick = { onItemClick(DrawerDestination.PRIVACY_POLICY) }
       )
 
+      // 11. About Developer
+      DrawerRowItem(
+        icon = Icons.Default.Person,
+        label = if (selectedLang == "BN") "ডেভেলপার সম্পর্কিত তথ্য" else if (selectedLang == "AR") "معلومات المطور" else "About Developer",
+        badge = "MSI VERTEX",
+        isDark = isDark,
+        onClick = { onItemClick(DrawerDestination.ABOUT_DEVELOPER) }
+      )
+
       Spacer(modifier = Modifier.height(20.dp))
 
       // Footer version
@@ -1046,7 +1055,8 @@ enum class DrawerDestination {
   SHARE_APP,
   RATE_US,
   FEEDBACK,
-  PRIVACY_POLICY
+  PRIVACY_POLICY,
+  ABOUT_DEVELOPER
 }
 
 @Composable

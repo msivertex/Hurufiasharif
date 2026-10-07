@@ -59,6 +59,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -95,9 +96,20 @@ import com.example.ui.theme.BackgroundGray
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.theme.RoyalEmerald
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.firebase.FirebaseAuthManager
+import kotlinx.coroutines.launch
+
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    try {
+      if (com.google.firebase.FirebaseApp.getApps(this).isEmpty()) {
+        com.google.firebase.FirebaseApp.initializeApp(this)
+      }
+    } catch (e: Throwable) {
+      android.util.Log.w("MainActivity", "FirebaseApp init warning", e)
+    }
     enableEdgeToEdge()
     setContent {
       val context = androidx.compose.ui.platform.LocalContext.current
@@ -110,25 +122,25 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- * Android Jetpack Compose implementation of AuthScreen based on the Flutter specification.
- * - Background: Color(0xFFF4F6F8)
- * - AppBar: Color(0xFF0A5C36) (Royal Emerald Green)
- * - Language Dropdown: ['BN', 'EN', 'AR'] (Default 'BN')
- * - Title: AppStrings.getLoginTitle(selectedLang) with Color(0xFF0A5C36)
- * - Email Input: AppStrings.getEmailHint(selectedLang) with 12.dp radius & email icon
- * - Password Input: AppStrings.getPasswordHint(selectedLang) with 12.dp radius & lock icon
- * - Submit Button: AppStrings.getSubmitBtn(selectedLang) with 50.dp height & Color(0xFF0A5C36)
+ * Android Jetpack Compose Auth Gate with Google Sign-In via Credential Manager & Firebase Auth.
+ * Gates application UI behind authenticated user session or guest exploration mode.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen() {
-  // ১. ডিফল্ট ভাষা বাংলা ('BN')
-  var selectedLang by remember { mutableStateOf("BN") }
-  var email by remember { mutableStateOf("user@hurufia.com") }
-  var password by remember { mutableStateOf("") }
-  var passwordVisible by remember { mutableStateOf(false) }
+  val context = androidx.compose.ui.platform.LocalContext.current
+  val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+  val authManager = remember { FirebaseAuthManager.getInstance() }
+  val currentUser by authManager.authStateFlow.collectAsStateWithLifecycle(initialValue = authManager.currentUser)
+
+  var selectedLang by remember {
+    mutableStateOf(AuthSessionManager.getSelectedLanguage(context, "BN"))
+  }
   var showLanguageMenu by remember { mutableStateOf(false) }
-  var isLoggedIn by remember { mutableStateOf(true) }
+  var isSigningIn by remember { mutableStateOf(false) }
+  var isGuestMode by remember {
+    mutableStateOf(AuthSessionManager.isGuestSession(context))
+  }
   var errorMessage by remember { mutableStateOf<String?>(null) }
 
   // Automatically request Location Permission on app startup
@@ -145,17 +157,47 @@ fun AuthScreen() {
     )
   }
 
-  val focusManager = LocalFocusManager.current
+  // Attempt silent sign-in on cold start if previously authorized
+  LaunchedEffect(Unit) {
+    if (authManager.currentUser == null && !isGuestMode) {
+      authManager.trySilentSignIn(context)
+    }
+  }
+
+  // If a real Firebase user logs in, persist session locally
+  val user = currentUser
+  LaunchedEffect(user) {
+    if (user != null) {
+      AuthSessionManager.saveUserSession(context, user.email, user.uid)
+      isGuestMode = false
+    }
+  }
+
   val layoutDirection = if (selectedLang == "AR") LayoutDirection.Rtl else LayoutDirection.Ltr
 
-  if (isLoggedIn) {
+  val hasPersistedSession = AuthSessionManager.hasActiveSession(context)
+  val isSessionActive = user != null || isGuestMode || hasPersistedSession
+
+  if (isSessionActive) {
+    val activeEmail = user?.email?.ifBlank { null }
+      ?: AuthSessionManager.getSavedUserEmail(context).ifBlank { null }
+      ?: "guest@hurufia.com"
+    val activeUid = user?.uid?.ifBlank { null }
+      ?: AuthSessionManager.getSavedUserUid(context).ifBlank { null }
+      ?: "guest_user"
+
     HomeDashboardScreen(
       selectedLang = selectedLang,
-      onLanguageChange = { selectedLang = it },
-      userEmail = email.ifBlank { "user@hurufia.com" },
+      onLanguageChange = {
+        selectedLang = it
+        AuthSessionManager.saveSelectedLanguage(context, it)
+      },
+      userEmail = activeEmail,
+      currentUserId = activeUid,
       onSignOut = {
-        isLoggedIn = false
-        password = ""
+        authManager.signOut()
+        AuthSessionManager.clearSession(context)
+        isGuestMode = false
         errorMessage = null
       }
     )
@@ -268,7 +310,6 @@ fun AuthScreen() {
             .imePadding(),
           contentAlignment = Alignment.Center
         ) {
-          // Auth Screen Body: Padding(all: 24.0) -> Center -> SingleChildScrollView -> Column
           Column(
             modifier = Modifier
               .widthIn(max = 480.dp)
@@ -278,13 +319,13 @@ fun AuthScreen() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
           ) {
-            // Optional logo emblem representing Hurufia Sharif
+            // Hurufia Sharif Logo
             Box(
               modifier = Modifier
-                .size(72.dp)
+                .size(80.dp)
                 .clip(CircleShape)
-                .border(2.dp, RoyalEmerald, CircleShape)
-                .shadow(4.dp, CircleShape),
+                .border(2.5.dp, RoyalEmerald, CircleShape)
+                .shadow(6.dp, CircleShape),
               contentAlignment = Alignment.Center
             ) {
               Image(
@@ -295,200 +336,217 @@ fun AuthScreen() {
               )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-            // টাইটেল: AppStrings.getLoginTitle(selectedLang)
+            // Title & Description
             Text(
-              text = AppStrings.getLoginTitle(selectedLang),
+              text = AppStrings.getAppName(selectedLang),
               style = TextStyle(
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = RoyalEmerald // const Color(0xFF0A5C36)
+                fontSize = 26.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = RoyalEmerald
               ),
               textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
-            // ইমেইল ইনপুট বক্স
-            OutlinedTextField(
-              value = email,
-              onValueChange = {
-                email = it
-                errorMessage = null
+            Text(
+              text = when (selectedLang) {
+                "EN" -> "Authentic Arabic Learning & Tajweed with Cloud Sync"
+                "AR" -> "تعلم الحروف والتجويد مع المزامنة السحابية"
+                else -> "সহিহ কুরআন ও আরবি শিক্ষা • ক্লাউড প্রগ্রেস সিঙ্ক"
               },
-              label = { Text(AppStrings.getEmailHint(selectedLang)) },
-              placeholder = { Text(AppStrings.getEmailHint(selectedLang)) },
-              shape = RoundedCornerShape(12.dp),
-              leadingIcon = {
-                Icon(
-                  imageVector = Icons.Default.Email,
-                  contentDescription = "Email",
-                  tint = RoyalEmerald // const Color(0xFF0A5C36)
-                )
-              },
-              colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = RoyalEmerald,
-                unfocusedBorderColor = Color(0xFFCBD5E1),
-                focusedLabelColor = RoyalEmerald,
-                cursorColor = RoyalEmerald
+              style = TextStyle(
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF64748B)
               ),
-              singleLine = true,
-              keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next
-              ),
-              modifier = Modifier
-                .fillMaxWidth()
-                .testTag("email_input")
+              textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(15.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // পাসওয়ার্ড ইনপুট বক্স
-            OutlinedTextField(
-              value = password,
-              onValueChange = {
-                password = it
-                errorMessage = null
-              },
-              label = { Text(AppStrings.getPasswordHint(selectedLang)) },
-              placeholder = { Text(AppStrings.getPasswordHint(selectedLang)) },
-              shape = RoundedCornerShape(12.dp),
-              leadingIcon = {
-                Icon(
-                  imageVector = Icons.Default.Lock,
-                  contentDescription = "Password",
-                  tint = RoyalEmerald // const Color(0xFF0A5C36)
-                )
-              },
-              trailingIcon = {
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                  Icon(
-                    imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                    contentDescription = if (passwordVisible) "Hide Password" else "Show Password",
-                    tint = RoyalEmerald.copy(alpha = 0.7f)
-                  )
+            // Firebase Cloud Features Info Card
+            Surface(
+              shape = RoundedCornerShape(16.dp),
+              color = Color.White,
+              border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+              shadowElevation = 2.dp,
+              modifier = Modifier.fillMaxWidth()
+            ) {
+              Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                  Surface(
+                    shape = CircleShape,
+                    color = Color(0xFFFEF3C7),
+                    modifier = Modifier.size(32.dp)
+                  ) {
+                    Box(contentAlignment = Alignment.Center) {
+                      Text(text = "🔥", fontSize = 16.sp)
+                    }
+                  }
+                  Spacer(modifier = Modifier.width(10.dp))
+                  Column {
+                    Text(
+                      text = when (selectedLang) {
+                        "EN" -> "Firebase Cloud Firestore"
+                        "AR" -> "قاعدة بيانات فايربيس السحابية"
+                        else -> "ফায়ারবেস ক্লাউড স্টোরেজ"
+                      },
+                      style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                    )
+                    Text(
+                      text = when (selectedLang) {
+                        "EN" -> "Secure Google Sign-In & Live Data Sync"
+                        "AR" -> "تسجيل دخول آمن ومزامنة تلقائية"
+                        else -> "নিরাপদ গুগল সাইন-ইন ও স্বয়ংক্রিয় ক্লাউড ব্যাকআপ"
+                      },
+                      style = TextStyle(fontSize = 11.sp, color = Color(0xFF64748B))
+                    )
+                  }
                 }
-              },
-              visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-              colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = RoyalEmerald,
-                unfocusedBorderColor = Color(0xFFCBD5E1),
-                focusedLabelColor = RoyalEmerald,
-                cursorColor = RoyalEmerald
-              ),
-              singleLine = true,
-              keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done
-              ),
-              keyboardActions = KeyboardActions(
-                onDone = { focusManager.clearFocus() }
-              ),
-              modifier = Modifier
-                .fillMaxWidth()
-                .testTag("password_input")
-            )
+              }
+            }
 
-            // Validation message if any
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Validation or sign-in error display
             AnimatedVisibility(
               visible = errorMessage != null,
               enter = fadeIn(),
               exit = fadeOut()
             ) {
               errorMessage?.let { msg ->
-                Text(
-                  text = msg,
-                  color = MaterialTheme.colorScheme.error,
-                  style = MaterialTheme.typography.bodySmall,
+                Surface(
+                  shape = RoundedCornerShape(12.dp),
+                  color = Color(0xFFFEF2F2),
+                  border = BorderStroke(1.dp, Color(0xFFFCA5A5)),
                   modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp, start = 4.dp)
-                )
+                    .padding(bottom = 16.dp)
+                ) {
+                  Text(
+                    text = msg,
+                    color = Color(0xFFDC2626),
+                    style = TextStyle(fontSize = 12.5.sp, fontWeight = FontWeight.Medium),
+                    modifier = Modifier.padding(12.dp),
+                    textAlign = TextAlign.Center
+                  )
+                }
               }
             }
 
-            Spacer(modifier = Modifier.height(25.dp))
-
-            // প্রবেশ বাটন: SizedBox(width: double.infinity, height: 50)
+            // Primary Google Sign-In Button (Mandatory Phase 1 Invariant)
             Button(
               onClick = {
-                focusManager.clearFocus()
-                if (email.isBlank()) {
-                  errorMessage = when (selectedLang) {
-                    "EN" -> "Please enter your email"
-                    "AR" -> "يرجى إدخال البريد الإلكتروني"
-                    else -> "দয়া করে আপনার ইমেইল প্রদান করুন"
+                if (!isSigningIn) {
+                  coroutineScope.launch {
+                    isSigningIn = true
+                    errorMessage = null
+                    val result = authManager.signInWithGoogle(context)
+                    isSigningIn = false
+                    if (result.isFailure) {
+                      val exception = result.exceptionOrNull()
+                      if (exception !is androidx.credentials.exceptions.GetCredentialCancellationException) {
+                        errorMessage = exception?.localizedMessage ?: "Google Sign-In failed"
+                      }
+                    }
                   }
-                  return@Button
                 }
-                // এখানে ক্লিক করলে হোম পেজে চলে যাবে
-                isLoggedIn = true
               },
-              shape = RoundedCornerShape(12.dp),
+              shape = RoundedCornerShape(14.dp),
               colors = ButtonDefaults.buttonColors(
-                containerColor = RoyalEmerald // const Color(0xFF0A5C36)
+                containerColor = Color.White,
+                contentColor = Color(0xFF1F2937)
               ),
+              border = BorderStroke(1.5.dp, Color(0xFFCBD5E1)),
+              elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp, pressedElevation = 4.dp),
               modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp)
-                .testTag("submit_button")
+                .height(54.dp)
+                .testTag("google_sign_in_button")
             ) {
-              Text(
-                text = AppStrings.getSubmitBtn(selectedLang),
-                style = TextStyle(
-                  fontSize = 18.sp,
-                  fontWeight = FontWeight.Bold,
-                  color = Color.White
+              if (isSigningIn) {
+                androidx.compose.material3.CircularProgressIndicator(
+                  modifier = Modifier.size(22.dp),
+                  color = RoyalEmerald,
+                  strokeWidth = 2.5.dp
                 )
-              )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                  text = when (selectedLang) {
+                    "EN" -> "Signing in with Google..."
+                    "AR" -> "جارٍ تسجيل الدخول..."
+                    else -> "গুগল সাইন-ইন হচ্ছে..."
+                  },
+                  style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF374151))
+                )
+              } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                  // Google 'G' Icon
+                  androidx.compose.foundation.Canvas(modifier = Modifier.size(22.dp)) {
+                    val w = size.width
+                    val h = size.height
+                    drawCircle(
+                      color = Color(0xFF4285F4),
+                      radius = w * 0.45f,
+                      center = androidx.compose.ui.geometry.Offset(w / 2f, h / 2f)
+                    )
+                  }
+                  Spacer(modifier = Modifier.width(12.dp))
+                  Text(
+                    text = when (selectedLang) {
+                      "EN" -> "Sign in with Google"
+                      "AR" -> "تسجيل الدخول عبر Google"
+                      else -> "Google দিয়ে সাইন ইন করুন"
+                    },
+                    style = TextStyle(
+                      fontSize = 15.sp,
+                      fontWeight = FontWeight.Bold,
+                      color = Color(0xFF1F2937)
+                    )
+                  )
+                }
+              }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Demo helper button for rapid testing
-            TextButton(
-              onClick = {
-                email = "user@hurufia.com"
-                password = "Password123"
-                errorMessage = null
-              },
-              modifier = Modifier.testTag("demo_button")
-            ) {
-              Text(
-                text = when (selectedLang) {
-                  "EN" -> "Quick Fill (Demo Account)"
-                  "AR" -> "ملء تلقائي (حساب تجريبي)"
-                  else -> "ডেমো তথ্য দিয়ে চেষ্টা করুন"
-                },
-                color = RoyalEmerald,
-                fontWeight = FontWeight.SemiBold
-              )
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Direct exploration shortcut button: 'পরবর্তী' / 'Next'
+            // Guest Mode / Instant Preview Button
             OutlinedButton(
               onClick = {
-                email = "user@hurufia.com"
-                isLoggedIn = true
+                AuthSessionManager.setGuestSession(context, true)
+                isGuestMode = true
               },
-              shape = RoundedCornerShape(12.dp),
-              border = BorderStroke(1.dp, RoyalEmerald.copy(alpha = 0.5f)),
+              shape = RoundedCornerShape(14.dp),
+              colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = RoyalEmerald
+              ),
+              border = BorderStroke(1.5.dp, RoyalEmerald),
               modifier = Modifier
                 .fillMaxWidth()
-                .testTag("skip_to_home_button")
+                .height(52.dp)
+                .testTag("guest_explore_button")
             ) {
+              Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = RoyalEmerald
+              )
+              Spacer(modifier = Modifier.width(8.dp))
               Text(
                 text = when (selectedLang) {
-                  "EN" -> "Next: Explore Home Dashboard ➔"
-                  "AR" -> "التالي: استكشف لوحة التحكم ➔"
-                  else -> "পরবর্তী: হোম ড্যাশবোর্ড দেখুন ➔"
+                  "EN" -> "Continue as Guest"
+                  "AR" -> "الدخول كضيف"
+                  else -> "গেস্ট হিসেবে ব্যবহার করুন"
                 },
-                color = RoyalEmerald,
-                fontWeight = FontWeight.Bold
+                style = TextStyle(
+                  fontSize = 14.5.sp,
+                  fontWeight = FontWeight.Bold,
+                  color = RoyalEmerald
+                )
               )
             }
           }

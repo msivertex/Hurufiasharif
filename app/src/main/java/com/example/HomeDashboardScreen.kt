@@ -138,12 +138,21 @@ fun HomeDashboardScreen(
   selectedLang: String,
   onLanguageChange: (String) -> Unit,
   userEmail: String,
+  currentUserId: String = "",
   onSignOut: () -> Unit
 ) {
   val context = LocalContext.current
   val soundManager = remember { SoundManager.getInstance(context) }
   DisposableEffect(Unit) {
     onDispose { soundManager.release() }
+  }
+
+  val firebaseUserRepo = remember {
+    try {
+      com.example.firebase.FirebaseUserRepository(context)
+    } catch (e: Exception) {
+      null
+    }
   }
 
   val layoutDirection = if (selectedLang == "AR") LayoutDirection.Rtl else LayoutDirection.Ltr
@@ -157,6 +166,28 @@ fun HomeDashboardScreen(
   val userCoins = progressRepo.userCoins
   val userLevel = progressRepo.userLevel
   val userStreak = progressRepo.userStreak
+
+  // Real-time Cloud Sync with Firestore
+  LaunchedEffect(currentUserId, userCoins, userLevel, userStreak, selectedLang) {
+    if (currentUserId.isNotBlank() && currentUserId != "guest_user" && firebaseUserRepo != null) {
+      try {
+        firebaseUserRepo.saveUserProfile(
+          com.example.firebase.UserProfile(
+            userId = currentUserId,
+            email = userEmail,
+            displayName = userEmail.substringBefore("@"),
+            coins = userCoins.toLong(),
+            level = userLevel.toLong(),
+            streak = userStreak.toLong(),
+            selectedLanguage = selectedLang,
+            selectedQariVoice = soundManager.currentVoiceGender.name
+          )
+        )
+      } catch (e: Exception) {
+        android.util.Log.w("HomeDashboard", "Firestore sync skipped or error", e)
+      }
+    }
+  }
 
   var selectedLetterForDetail by remember { mutableStateOf<ArabicLetter?>(null) }
   var letterForMakhrajVisualizer by remember { mutableStateOf<ArabicLetter?>(null) }
@@ -177,6 +208,7 @@ fun HomeDashboardScreen(
   var showLocationSettingsDialog by remember { mutableStateOf(false) }
   var showAudioQariDialog by remember { mutableStateOf(false) }
   var showFeedbackDialog by remember { mutableStateOf(false) }
+  var showDeveloperDialog by remember { mutableStateOf(false) }
   var isAzanMuted by remember { mutableStateOf(islamicOfflineRepo.isAzanMuted) }
 
   val locationService = remember { IslamicLocationService(context) }
@@ -294,6 +326,7 @@ fun HomeDashboardScreen(
               }
               DrawerDestination.FEEDBACK -> showFeedbackDialog = true
               DrawerDestination.PRIVACY_POLICY -> showPrivacyPolicyDialog = true
+              DrawerDestination.ABOUT_DEVELOPER -> showDeveloperDialog = true
             }
           }
         )
@@ -708,6 +741,17 @@ fun HomeDashboardScreen(
       selectedLang = selectedLang,
       onDismiss = { showFeedbackDialog = false }
     )
+  }
+
+  if (showDeveloperDialog) {
+    Dialog(onDismissRequest = { showDeveloperDialog = false }) {
+      DeveloperProfileCard(
+        selectedLang = selectedLang,
+        modifier = Modifier
+          .fillMaxWidth()
+          .widthIn(max = 460.dp)
+      )
+    }
   }
 }
 

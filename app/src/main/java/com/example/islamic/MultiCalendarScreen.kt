@@ -724,11 +724,12 @@ private fun HijriCalendarContent(
   selectedLang: String,
   onOpenMonthModal: (MonthModalState) -> Unit
 ) {
-  // 1. Hero Hijri Date Card with Dynamic Special Month Canvas and 3D Flip Date Number
+  // 1. Hero Hijri Date Card with Deep Emerald/Midnight Canvas and 3D Flip Date Number
   Card(
     shape = RoundedCornerShape(22.dp),
     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
     elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+    border = BorderStroke(1.2.dp, Color(0xFF6EE7B7).copy(alpha = 0.28f)),
     modifier = Modifier
       .fillMaxWidth()
       .testTag("hijri_hero_card")
@@ -737,12 +738,18 @@ private fun HijriCalendarContent(
       modifier = Modifier
         .fillMaxWidth()
         .background(
-          Brush.linearGradient(
-            listOf(Color(0xFF022C22), Color(0xFF064E3B), Color(0xFF0F172A))
+          Brush.verticalGradient(
+            listOf(
+              Color(0xFF021B14), // Deep Obsidian Emerald
+              Color(0xFF042B20), // Deep Islamic Forest Emerald
+              Color(0xFF063A2B), // Rich Emerald Atmosphere
+              Color(0xFF082232), // Midnight Teal Transition
+              Color(0xFF020617)  // Deep Midnight Obsidian
+            )
           )
         )
     ) {
-      // Dynamic Hijri Atmospheric Canvas (Moon phase, Starry night, Ramadan Fanous, Dhul Hijjah Aura)
+      // Dynamic Hijri Atmospheric Canvas (Starry night particles, Ramadan Fanous, Dhul Hijjah Aura)
       HijriMonthAtmosphericCanvas(
         hijriMonth = hijriDate.month,
         hijriDay = hijriDate.day,
@@ -753,8 +760,9 @@ private fun HijriCalendarContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
           .fillMaxWidth()
-          .padding(22.dp)
+          .padding(horizontal = 20.dp, vertical = 22.dp)
       ) {
+        // Top Header Row
         Row(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.SpaceBetween,
@@ -762,11 +770,16 @@ private fun HijriCalendarContent(
         ) {
           Surface(
             shape = RoundedCornerShape(10.dp),
-            color = Color.White.copy(alpha = 0.2f)
+            color = Color.Black.copy(alpha = 0.35f),
+            border = BorderStroke(0.8.dp, Color(0xFF6EE7B7).copy(alpha = 0.30f))
           ) {
             Text(
-              text = "🌙 হিজরি চান্দ্রবর্ষ",
-              style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color.White),
+              text = if (selectedLang == "BN") "হিজরি চান্দ্রবর্ষ" else if (selectedLang == "AR") "التقويم الهجري" else "Hijri Calendar",
+              style = TextStyle(
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFD1FAE5)
+              ),
               modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
             )
           }
@@ -774,7 +787,8 @@ private fun HijriCalendarContent(
           if (hijriDate.isWhiteDay) {
             Surface(
               shape = RoundedCornerShape(10.dp),
-              color = Color(0xFFFEF3C7)
+              color = Color(0xFFFEF3C7).copy(alpha = 0.92f),
+              border = BorderStroke(0.8.dp, Color(0xFFF59E0B))
             ) {
               Text(
                 text = "✨ আইয়ামে বিজ (রোজা)",
@@ -785,63 +799,97 @@ private fun HijriCalendarContent(
           }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.Center
+        // 1. SINGLE CENTRAL REALISTIC DYNAMIC MOON GRAPHIC (Based on current Hijri date - 23rd Rabi al-Thani)
+        DynamicCalendarMoonPhaseView(
+          hijriDay = hijriDate.day,
+          modifier = Modifier.size(54.dp)
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Moon Phase Status Badge directly below central Moon
+        Surface(
+          shape = RoundedCornerShape(12.dp),
+          color = Color.Black.copy(alpha = 0.38f),
+          border = BorderStroke(1.dp, Color(0xFF6EE7B7).copy(alpha = 0.35f))
         ) {
-          DynamicCalendarMoonPhaseView(
-            hijriDay = hijriDate.day,
-            modifier = Modifier.size(38.dp)
+          val moonPhaseName = when (hijriDate.day) {
+            1 -> if (selectedLang == "BN") "নতুন চাঁদ (হিলাল শুরু)" else "New Moon (Hilal)"
+            in 2..5 -> if (selectedLang == "BN") "হিলাল (অর্ধচন্দ্র)" else "Waxing Crescent"
+            in 6..8 -> if (selectedLang == "BN") "প্রথম চতুর্থাংশ" else "First Quarter"
+            in 9..12 -> if (selectedLang == "BN") "কূর্মাভ চাঁদ" else "Waxing Gibbous"
+            in 13..15 -> if (selectedLang == "BN") "বদর (পূর্ণিমা / আইয়ামে বিজ)" else "Full Moon (Badr)"
+            in 16..21 -> if (selectedLang == "BN") "হ্রাসমান কূর্মাভ চাঁদ" else "Waning Gibbous"
+            in 22..25 -> if (selectedLang == "BN") "ক্ষয়িষ্ণু অর্ধচন্দ্র (২৩ই রবিউস সানি)" else "Waning Crescent (23rd Rabi al-Thani)"
+            in 26..28 -> if (selectedLang == "BN") "ক্ষয়িষ্ণু অর্ধচন্দ্র" else "Waning Crescent"
+            else -> if (selectedLang == "BN") "অমাবস্যা" else "Dark Moon"
+          }
+          Text(
+            text = moonPhaseName,
+            style = TextStyle(
+              fontSize = 11.5.sp,
+              fontWeight = FontWeight.SemiBold,
+              color = Color(0xFFD1FAE5),
+              letterSpacing = 0.3.sp
+            ),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
           )
-          Spacer(modifier = Modifier.width(8.dp))
-          Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = Color.Black.copy(alpha = 0.28f),
-            border = BorderStroke(1.dp, Color(0xFF6EE7B7).copy(alpha = 0.35f))
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // 3D Page-Flip Entrance Animated Date Number ("২৩")
+        FlipDateCardNumber(
+          dateText = toBnDigits(hijriDate.day),
+          textStyle = TextStyle(
+            fontSize = 66.sp,
+            fontWeight = FontWeight.Black,
+            color = Color(0xFFFEF9C3),
+            letterSpacing = (-1.5).sp
+          )
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Frosted Glass Container with High Contrast & Polished Typography for Month & Year
+        Surface(
+          shape = RoundedCornerShape(16.dp),
+          color = Color(0xFF021B14).copy(alpha = 0.58f),
+          border = BorderStroke(1.dp, Color(0xFF6EE7B7).copy(alpha = 0.32f)),
+          shadowElevation = 2.dp,
+          modifier = Modifier.fillMaxWidth()
+        ) {
+          Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 11.dp)
           ) {
-            val moonPhaseName = when (hijriDate.day) {
-              1 -> if (selectedLang == "BN") "নতুন চাঁদ (হিলাল শুরু)" else "New Moon (Hilal)"
-              in 2..5 -> if (selectedLang == "BN") "হিলাল (অর্ধচন্দ্র)" else "Waxing Crescent"
-              in 6..8 -> if (selectedLang == "BN") "প্রথম চতুর্থাংশ" else "First Quarter"
-              in 9..12 -> if (selectedLang == "BN") "কূর্মাভ চাঁদ" else "Waxing Gibbous"
-              in 13..15 -> if (selectedLang == "BN") "বদর (পূর্ণিমা / আইয়ামে বিজ)" else "Full Moon (Badr)"
-              in 16..21 -> if (selectedLang == "BN") "হ্রাসমান কূর্মাভ চাঁদ" else "Waning Gibbous"
-              in 22..25 -> if (selectedLang == "BN") "শেষ চতুর্থাংশ" else "Last Quarter"
-              in 26..28 -> if (selectedLang == "BN") "ক্ষয়িষ্ণু অর্ধচন্দ্র" else "Waning Crescent"
-              else -> if (selectedLang == "BN") "অমাবস্যা" else "Dark Moon"
-            }
             Text(
-              text = moonPhaseName,
-              style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFD1FAE5)),
-              modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+              text = "${hijriDate.monthNameBn}, ${toBnDigits(hijriDate.year)} হিজরি",
+              style = TextStyle(
+                fontSize = 19.5.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF6EE7B7),
+                letterSpacing = 0.5.sp
+              ),
+              textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+              text = "${hijriDate.monthNameAr} ${toBnDigits(hijriDate.year)} هـ",
+              style = TextStyle(
+                fontSize = 14.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White.copy(alpha = 0.90f),
+                letterSpacing = 0.4.sp
+              ),
+              textAlign = TextAlign.Center
             )
           }
         }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // Large prominent day number with 3D Page-Flip Animation
-        FlipDateCardNumber(
-          dateText = toBnDigits(hijriDate.day)
-        )
-
-        Text(
-          text = "${hijriDate.monthNameBn}, ${toBnDigits(hijriDate.year)} হিজরি",
-          style = TextStyle(
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF6EE7B7)
-          )
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-          text = "${hijriDate.monthNameAr} ${toBnDigits(hijriDate.year)} هـ",
-          style = TextStyle(fontSize = 15.sp, color = Color.White.copy(alpha = 0.85f))
-        )
       }
     }
   }

@@ -1,0 +1,185 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with gamified stats, coins, streaks, and preferences",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Unique Firebase Authentication UID"
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name"
+        },
+        "coins": {
+          "type": "integer",
+          "description": "Total coins earned in learning games"
+        },
+        "level": {
+          "type": "integer",
+          "description": "Current learning level (1..99)"
+        },
+        "streak": {
+          "type": "integer",
+          "description": "Consecutive days practice streak"
+        },
+        "selectedLanguage": {
+          "type": "string",
+          "description": "Selected interface language (BN, EN, AR)",
+          "enum": ["BN", "EN", "AR"]
+        },
+        "selectedQariVoice": {
+          "type": "string",
+          "description": "Selected Qari/Qaria reciter voice",
+          "enum": ["MALE_QARI", "FEMALE_QARIA"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when account was initialized"
+        },
+        "lastActive": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of most recent activity"
+        }
+      },
+      "required": ["userId", "email", "coins", "level", "streak", "selectedLanguage", "selectedQariVoice"]
+    },
+    "ChapterProgress": {
+      "title": "ChapterProgress",
+      "description": "Progress tracking for a Kaida education chapter",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Unique Firebase Authentication UID"
+        },
+        "chapterId": {
+          "type": "string",
+          "description": "Chapter identifier (e.g., chapter_1)"
+        },
+        "unlocked": {
+          "type": "boolean",
+          "description": "Whether chapter is unlocked"
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Whether chapter has been completed"
+        },
+        "completedPages": {
+          "type": "integer",
+          "description": "Number of slides/pages completed"
+        },
+        "totalPages": {
+          "type": "integer",
+          "description": "Total slides/pages in the chapter"
+        },
+        "stars": {
+          "type": "integer",
+          "description": "Stars earned (0..3)"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["userId", "chapterId", "unlocked", "completed", "completedPages", "totalPages"]
+    },
+    "SurahProgress": {
+      "title": "SurahProgress",
+      "description": "Ampara and Short Surah memorization practice progress",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Unique Firebase Authentication UID"
+        },
+        "surahNumber": {
+          "type": "integer",
+          "description": "Surah number (1..114)"
+        },
+        "surahName": {
+          "type": "string",
+          "description": "Surah name in English or Bengali"
+        },
+        "completedVerses": {
+          "type": "integer",
+          "description": "Number of verses memorized/practiced"
+        },
+        "totalVerses": {
+          "type": "integer",
+          "description": "Total verses in the Surah"
+        },
+        "isMemorized": {
+          "type": "boolean",
+          "description": "Whether the Surah is marked fully memorized"
+        },
+        "lastPracticed": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last practice timestamp"
+        }
+      },
+      "required": ["userId", "surahNumber", "completedVerses", "totalVerses", "isMemorized"]
+    },
+    "DailyDeedRecord": {
+      "title": "DailyDeedRecord",
+      "description": "Daily virtuous deeds checklist record",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Unique Firebase Authentication UID"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date string YYYY-MM-DD"
+        },
+        "completedDeeds": {
+          "type": "array",
+          "description": "List of completed deed IDs"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["userId", "date", "completedDeeds"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Collection of user profiles keyed by Firebase Auth UID"
+    },
+    "/users/{userId}/progress/{chapterId}": {
+      "schema": {
+        "$ref": "#/entities/ChapterProgress"
+      },
+      "description": "Subcollection tracking progress per Kaida chapter"
+    },
+    "/users/{userId}/surah_progress/{surahNumber}": {
+      "schema": {
+        "$ref": "#/entities/SurahProgress"
+      },
+      "description": "Subcollection tracking memorization progress per Surah"
+    },
+    "/users/{userId}/daily_deeds/{deedDate}": {
+      "schema": {
+        "$ref": "#/entities/DailyDeedRecord"
+      },
+      "description": "Subcollection tracking daily deeds checklist"
+    }
+  }
+}

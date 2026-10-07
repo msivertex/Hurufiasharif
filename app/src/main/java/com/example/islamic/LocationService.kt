@@ -83,6 +83,7 @@ object LocationPresets {
     CityPreset("Joypurhat", "জয়পুরহাট", "Bangladesh", "বাংলাদেশ", 25.1015, 89.0277, 6.0, CalculationMethod.KARACHI, JuristicMethod.HANAFI, "BD", "রাজশাহী বিভাগ"),
 
     // Khulna Division
+    CityPreset("Paikgacha", "পাইকগাছা", "Bangladesh", "বাংলাদেশ", 22.5878, 89.3333, 6.0, CalculationMethod.KARACHI, JuristicMethod.HANAFI, "BD", "খুলনা বিভাগ • পাইকগাছা"),
     CityPreset("Khulna", "খুলনা", "Bangladesh", "বাংলাদেশ", 22.8456, 89.5403, 6.0, CalculationMethod.KARACHI, JuristicMethod.HANAFI, "BD", "খুলনা বিভাগ"),
     CityPreset("Jessore (Jashore)", "যশোর", "Bangladesh", "বাংলাদেশ", 23.1664, 89.2081, 6.0, CalculationMethod.KARACHI, JuristicMethod.HANAFI, "BD", "খুলনা বিভাগ"),
     CityPreset("Kushtia", "কুষ্টিয়া", "Bangladesh", "বাংলাদেশ", 23.9013, 89.1204, 6.0, CalculationMethod.KARACHI, JuristicMethod.HANAFI, "BD", "খুলনা বিভাগ"),

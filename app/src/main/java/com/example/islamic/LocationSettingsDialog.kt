@@ -2,6 +2,7 @@ package com.example.islamic
 
 import android.Manifest
 import android.widget.Toast
+import com.example.DeveloperProfileCard
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -807,6 +808,14 @@ fun LocationSettingsDialog(
             }
           }
         }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Developer Information Card
+        DeveloperProfileCard(
+          selectedLang = selectedLang,
+          modifier = Modifier.fillMaxWidth()
+        )
 
         Spacer(modifier = Modifier.height(14.dp))
 

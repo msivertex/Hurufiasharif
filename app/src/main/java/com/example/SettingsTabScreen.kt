@@ -704,7 +704,15 @@ fun SettingsTabScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 7. App Info Card
+        // 7. Dedicated "About Developer / ডেভেলপার সম্পর্কিত তথ্য" Section
+        DeveloperProfileCard(
+          selectedLang = selectedLang,
+          modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 8. App Info Card
         Card(
           shape = RoundedCornerShape(16.dp),
           colors = CardDefaults.cardColors(containerColor = Color.White),

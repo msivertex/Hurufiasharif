@@ -1,6 +1,7 @@
 package com.example.islamic
 
 import android.app.Activity
+import com.example.DeveloperProfileCard
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -1439,7 +1440,22 @@ fun QiblaCompassScreen(
         }
       }
     }
+
+    Spacer(modifier = Modifier.height(20.dp))
+
+    // Dedicated Developer Profile Card
+    DeveloperProfileCard(
+      selectedLang = selectedLang,
+      modifier = Modifier.fillMaxWidth()
+    )
+
+    Spacer(modifier = Modifier.height(24.dp))
   }
+}
+
+private fun toBnDigits(num: Int): String {
+  val bnDigits = charArrayOf('০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯')
+  return num.toString().map { if (it in '0'..'9') bnDigits[it - '0'] else it }.joinToString("")
 }
 
 /**
@@ -1468,10 +1484,10 @@ fun HijriCalendarScreen(
   ) {
     // Current Hijri Card
     Card(
-      shape = RoundedCornerShape(20.dp),
-      colors = CardDefaults.cardColors(containerColor = Color.White),
-      elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-      border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+      shape = RoundedCornerShape(22.dp),
+      colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+      elevation = CardDefaults.cardElevation(defaultElevation = 5.dp),
+      border = BorderStroke(1.2.dp, Color(0xFF6EE7B7).copy(alpha = 0.28f)),
       modifier = Modifier.fillMaxWidth()
     ) {
       Box(
@@ -1480,12 +1496,15 @@ fun HijriCalendarScreen(
           .background(
             Brush.verticalGradient(
               colors = listOf(
-                Color(0xFF063A22),
-                Color(0xFF0A5C36)
+                Color(0xFF021B14),
+                Color(0xFF042B20),
+                Color(0xFF063A2B),
+                Color(0xFF082232),
+                Color(0xFF020617)
               )
             )
           )
-          .padding(18.dp)
+          .padding(20.dp)
       ) {
         Column(
           modifier = Modifier.fillMaxWidth(),
@@ -1497,45 +1516,80 @@ fun HijriCalendarScreen(
             verticalAlignment = Alignment.CenterVertically
           ) {
             Surface(
-              shape = RoundedCornerShape(8.dp),
-              color = Color.White.copy(alpha = 0.15f)
+              shape = RoundedCornerShape(10.dp),
+              color = Color.Black.copy(alpha = 0.35f),
+              border = BorderStroke(0.8.dp, Color(0xFF6EE7B7).copy(alpha = 0.30f))
             ) {
               Text(
-                text = "আজকের হিজরি তারিখ",
-                style = TextStyle(fontSize = 11.sp, color = Color.White),
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                text = if (selectedLang == "BN") "আজকের হিজরি তারিখ" else if (selectedLang == "AR") "التاريخ الهجري اليوم" else "Today's Hijri Date",
+                style = TextStyle(fontSize = 11.5.sp, color = Color(0xFFD1FAE5), fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
               )
             }
 
-            Text(
-              text = currentHijri.moonPhaseEmoji,
-              fontSize = 24.sp
-            )
+            Surface(
+              shape = RoundedCornerShape(10.dp),
+              color = Color.Black.copy(alpha = 0.35f),
+              border = BorderStroke(0.8.dp, Color(0xFF6EE7B7).copy(alpha = 0.25f))
+            ) {
+              Text(
+                text = "${toBnDigits(currentHijri.year)} AH",
+                style = TextStyle(fontSize = 11.sp, color = Color.White.copy(alpha = 0.9f), fontWeight = FontWeight.SemiBold),
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+              )
+            }
           }
+
+          Spacer(modifier = Modifier.height(14.dp))
+
+          // Single Central Realistic Moon Phase
+          DynamicCalendarMoonPhaseView(
+            hijriDay = currentHijri.day,
+            modifier = Modifier.size(54.dp)
+          )
 
           Spacer(modifier = Modifier.height(10.dp))
 
-          Text(
-            text = "${currentHijri.day}",
-            style = TextStyle(
-              fontSize = 44.sp,
+          // 3D Flip Date Number
+          FlipDateCardNumber(
+            dateText = toBnDigits(currentHijri.day),
+            textStyle = TextStyle(
+              fontSize = 62.sp,
               fontWeight = FontWeight.Black,
-              color = Color(0xFFFDE047)
+              color = Color(0xFFFEF9C3),
+              letterSpacing = (-1.5).sp
             )
           )
 
-          Text(
-            text = when (selectedLang) {
-              "EN" -> "${currentHijri.monthNameEn}, ${currentHijri.year} AH"
-              "AR" -> "${currentHijri.monthNameAr} ${currentHijri.year} هـ"
-              else -> "${currentHijri.monthNameBn}, ${currentHijri.year} হিজরি"
-            },
-            style = TextStyle(
-              fontSize = 18.sp,
-              fontWeight = FontWeight.Bold,
-              color = Color.White
-            )
-          )
+          Spacer(modifier = Modifier.height(8.dp))
+
+          // Frosted glass text panel
+          Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = Color(0xFF021B14).copy(alpha = 0.55f),
+            border = BorderStroke(1.dp, Color(0xFF6EE7B7).copy(alpha = 0.30f)),
+            modifier = Modifier.fillMaxWidth()
+          ) {
+            Column(
+              horizontalAlignment = Alignment.CenterHorizontally,
+              modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp)
+            ) {
+              Text(
+                text = when (selectedLang) {
+                  "EN" -> "${currentHijri.monthNameEn}, ${currentHijri.year} AH"
+                  "AR" -> "${currentHijri.monthNameAr} ${toBnDigits(currentHijri.year)} هـ"
+                  else -> "${currentHijri.monthNameBn}, ${toBnDigits(currentHijri.year)} হিজরি"
+                },
+                style = TextStyle(
+                  fontSize = 18.5.sp,
+                  fontWeight = FontWeight.ExtraBold,
+                  color = Color(0xFF6EE7B7),
+                  letterSpacing = 0.4.sp
+                ),
+                textAlign = TextAlign.Center
+              )
+            }
+          }
 
           if (currentHijri.isWhiteDay) {
             Spacer(modifier = Modifier.height(6.dp))

@@ -592,13 +592,13 @@ private fun SoundboardLetterCard(
   Card(
     shape = RoundedCornerShape(16.dp),
     colors = CardDefaults.cardColors(
-      containerColor = if (isSelected) DarkGreenCard else DarkGreenSurface
+      containerColor = if (isSelected) Color(0xFFF0FDF4) else Color(0xFFFFFFFF)
     ),
     border = BorderStroke(
       width = if (isSelected) 2.dp else 1.dp,
-      color = if (isSelected) IslamicGold else DarkGreenBorder
+      color = if (isSelected) Color(0xFF059669) else Color(0xFFE2E8F0)
     ),
-    elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 6.dp else 2.dp),
+    elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 2.dp),
     modifier = Modifier
       .fillMaxWidth()
       .height(96.dp)
@@ -615,7 +615,7 @@ private fun SoundboardLetterCard(
         text = "#${letter.id}",
         style = TextStyle(
           fontSize = 9.sp,
-          color = if (isSelected) IslamicGold else Color(0xFF64748B),
+          color = if (isSelected) Color(0xFF059669) else Color(0xFF64748B),
           fontWeight = FontWeight.Bold
         ),
         modifier = Modifier.align(Alignment.TopStart)
@@ -625,7 +625,7 @@ private fun SoundboardLetterCard(
       Icon(
         imageVector = Icons.Default.VolumeUp,
         contentDescription = null,
-        tint = if (isSelected) MintAccent else Color(0xFF475569),
+        tint = if (isSelected) Color(0xFF059669) else Color(0xFF94A3B8),
         modifier = Modifier
           .size(13.dp)
           .align(Alignment.TopEnd)
@@ -637,7 +637,7 @@ private fun SoundboardLetterCard(
         style = TextStyle(
           fontSize = 32.sp,
           fontWeight = FontWeight.Bold,
-          color = if (isSelected) Color.White else Color(0xFFF1F5F9),
+          color = Color(0xFF0F172A),
           fontFamily = FontFamily.Serif
         ),
         modifier = Modifier.align(Alignment.Center)
@@ -647,9 +647,9 @@ private fun SoundboardLetterCard(
       Text(
         text = letter.getName(selectedLang),
         style = TextStyle(
-          fontSize = 10.5.sp,
+          fontSize = 11.sp,
           fontWeight = FontWeight.SemiBold,
-          color = if (isSelected) MintAccent else Color(0xFF94A3B8)
+          color = if (isSelected) Color(0xFF059669) else Color(0xFF1E293B)
         ),
         maxLines = 1,
         modifier = Modifier.align(Alignment.BottomCenter)
@@ -1050,8 +1050,9 @@ fun AlphabetFormsTab(
         rowPair.forEach { (tag, title, glyph) ->
           Card(
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = DarkGreenCard),
-            border = BorderStroke(1.dp, DarkGreenBorder),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFFFF)),
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
             modifier = Modifier
               .weight(1f)
               .height(145.dp)
@@ -1069,7 +1070,7 @@ fun AlphabetFormsTab(
             ) {
               Text(
                 text = title,
-                style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = IslamicGold),
+                style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF059669)),
                 textAlign = TextAlign.Center,
                 maxLines = 1
               )
@@ -1080,7 +1081,7 @@ fun AlphabetFormsTab(
                 style = TextStyle(
                   fontSize = 42.sp,
                   fontWeight = FontWeight.Bold,
-                  color = Color.White,
+                  color = Color(0xFF0F172A),
                   fontFamily = FontFamily.Serif
                 )
               )
@@ -1092,13 +1093,13 @@ fun AlphabetFormsTab(
                 Icon(
                   imageVector = Icons.Default.VolumeUp,
                   contentDescription = "Audio feedback",
-                  tint = MintAccent,
+                  tint = Color(0xFF059669),
                   modifier = Modifier.size(14.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                   text = if (selectedLang == "BN") "শুনুন" else "Listen",
-                  style = TextStyle(fontSize = 10.sp, color = MintAccent, fontWeight = FontWeight.Bold)
+                  style = TextStyle(fontSize = 10.sp, color = Color(0xFF059669), fontWeight = FontWeight.Bold)
                 )
               }
             }
@@ -1860,8 +1861,9 @@ private fun LettersHorizontalSelector(
         val isSelected = letter.id == selectedLetter.id
         Surface(
           shape = RoundedCornerShape(12.dp),
-          color = if (isSelected) RoyalEmerald else DarkGreenSurface,
-          border = BorderStroke(1.dp, if (isSelected) IslamicGold else DarkGreenBorder),
+          color = if (isSelected) Color(0xFFF0FDF4) else Color(0xFFFFFFFF),
+          border = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) Color(0xFF059669) else Color(0xFFE2E8F0)),
+          shadowElevation = if (isSelected) 3.dp else 1.dp,
           modifier = Modifier
             .size(42.dp)
             .clickable { onSelectLetter(letter) }
@@ -1872,7 +1874,7 @@ private fun LettersHorizontalSelector(
               style = TextStyle(
                 fontSize = 19.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isSelected) Color.White else Color(0xFFCBD5E1),
+                color = if (isSelected) Color(0xFF059669) else Color(0xFF0F172A),
                 fontFamily = FontFamily.Serif
               )
             )

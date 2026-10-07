@@ -237,19 +237,21 @@ fun DynamicPrayerTimesHeroCard(
   // Base Atmospheric Gradients (Rich realistic weather gradients)
   val skyGradientColors = when (atmosphere) {
     SkyAtmosphere.DAY_SUNSHINE -> listOf(
-      Color(0xFF0284C7), // Deep Azure Sky
-      Color(0xFF38BDF8), // Radiant Sky Blue
-      Color(0xFF7DD3FC)  // Soft Horizon Mist
+      Color(0xFF385E8A), // Clean, vibrant Slate-Blue zenith (no dark inner-shadow or overlay)
+      Color(0xFF456F9E), // Smooth Slate-Blue transition
+      Color(0xFF5382B2), // Atmospheric Slate-Sky midtone
+      Color(0xFF6797C7), // Luminous Atmospheric Azure
+      Color(0xFF82B3E2)  // Clean, radiant Sky-Blue horizon
     )
     SkyAtmosphere.SUNSET_TWILIGHT -> listOf(
-      Color(0xFF2E1065), // Deep Twilight Violet
-      Color(0xFF7C2D12), // Deep Sunset Crimson
-      Color(0xFFEA580C), // Orange Sunset
-      Color(0xFFF59E0B)  // Warm Golden Horizon
+      Color(0xFF1E1035), // Deep Twilight Indigo-Violet
+      Color(0xFF581C10), // Deep Sunset Crimson
+      Color(0xFF9A3412), // Burnt Sienna Orange
+      Color(0xFFD97706)  // Warm Golden Amber Horizon
     )
     SkyAtmosphere.NIGHT_STARRY -> listOf(
-      Color(0xFF020617), // Pitch Dark Deep Cosmic Space
-      Color(0xFF0B132B), // Deep Midnight Navy
+      Color(0xFF020617), // Deep Cosmic Midnight Obsidian
+      Color(0xFF080E21), // Deep Midnight Navy Blue
       Color(0xFF0F172A)  // Slate Navy Atmosphere
     )
   }
@@ -366,18 +368,19 @@ fun DynamicPrayerTimesHeroCard(
         Spacer(modifier = Modifier.height(10.dp))
 
         // 4. FROSTED GLASS CONTAINER: CURRENT WAQT, TIMER & PROGRESS
-        // Improved dark mode contrast with rgba(255,255,255,0.18) border and p-4 (16.dp) padding
+        // Modern glassmorphism container (backdrop-blur feel with subtle border) for 100% crisp readability
         val innerCardBg = when (atmosphere) {
-          SkyAtmosphere.DAY_SUNSHINE -> Color(0xFF034A75).copy(alpha = 0.45f)
-          SkyAtmosphere.SUNSET_TWILIGHT -> Color(0xFF1E072E).copy(alpha = 0.50f)
-          SkyAtmosphere.NIGHT_STARRY -> Color(0xFF020617).copy(alpha = 0.60f)
+          SkyAtmosphere.DAY_SUNSHINE -> Color(0xFF0F172A).copy(alpha = 0.45f) // Deep slate glassmorphism
+          SkyAtmosphere.SUNSET_TWILIGHT -> Color(0xFF1E072E).copy(alpha = 0.52f)
+          SkyAtmosphere.NIGHT_STARRY -> Color(0xFF020617).copy(alpha = 0.65f)
         }
-        val innerCardBorder = Color.White.copy(alpha = 0.18f)
+        val innerCardBorder = Color.White.copy(alpha = 0.22f)
 
         Surface(
           shape = RoundedCornerShape(20.dp),
           color = innerCardBg,
-          border = BorderStroke(1.dp, innerCardBorder),
+          border = BorderStroke(1.2.dp, innerCardBorder),
+          shadowElevation = 4.dp,
           modifier = Modifier.fillMaxWidth()
         ) {
           Column(modifier = Modifier.padding(16.dp)) {
@@ -387,20 +390,27 @@ fun DynamicPrayerTimesHeroCard(
               horizontalArrangement = Arrangement.SpaceBetween,
               verticalAlignment = Alignment.CenterVertically
             ) {
-              // Left: Waqt Name + Active Status Badge
+              // Left: Waqt Name + Active Status Badge (Dynamically scaled font, NO truncation/ellipsis)
               Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f, fill = false)
               ) {
+                val waqtFontSize = when {
+                  currentWaqtName.length > 22 -> 13.5.sp
+                  currentWaqtName.length > 16 -> 15.sp
+                  currentWaqtName.length > 10 -> 17.5.sp
+                  else -> 20.sp
+                }
                 Text(
                   text = currentWaqtName,
                   style = TextStyle(
-                    fontSize = 21.sp,
+                    fontSize = waqtFontSize,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.White
                   ),
                   maxLines = 1,
-                  overflow = TextOverflow.Ellipsis
+                  softWrap = false,
+                  overflow = TextOverflow.Clip
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 // Active status badge
@@ -417,18 +427,19 @@ fun DynamicPrayerTimesHeroCard(
                       color = Color(0xFFE6FFFA)
                     ),
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                    maxLines = 1
+                    maxLines = 1,
+                    softWrap = false
                   )
                 }
               }
 
               Spacer(modifier = Modifier.width(8.dp))
 
-              // Right: Live Countdown Timer Box (Flex-Row, No-Wrap, Dynamic Font Scaling)
+              // Right: Live Countdown Timer Box (Flex-Row, No-Wrap, Strictly single horizontal row)
               Surface(
                 shape = RoundedCornerShape(10.dp),
-                color = Color.Black.copy(alpha = 0.42f),
-                border = BorderStroke(0.9.dp, Color.White.copy(alpha = 0.24f))
+                color = Color.Black.copy(alpha = 0.45f),
+                border = BorderStroke(0.9.dp, Color.White.copy(alpha = 0.25f))
               ) {
                 Row(
                   verticalAlignment = Alignment.CenterVertically,
@@ -436,9 +447,9 @@ fun DynamicPrayerTimesHeroCard(
                   modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.5.dp)
                 ) {
                   val countdownFontSize = when {
-                    countdownText.length > 25 -> 10.5.sp
-                    countdownText.length > 18 -> 11.5.sp
-                    else -> 12.5.sp
+                    countdownText.length > 26 -> 10.sp
+                    countdownText.length > 18 -> 11.2.sp
+                    else -> 12.2.sp
                   }
                   Text(
                     text = countdownText,
@@ -449,7 +460,7 @@ fun DynamicPrayerTimesHeroCard(
                     ),
                     maxLines = 1,
                     softWrap = false,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Clip
                   )
                 }
               }
@@ -501,37 +512,38 @@ fun DynamicPrayerTimesHeroCard(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 5. BOTTOM ACTION BUTTON (Frosted glass primary button "পূর্ণ সময়সূচি")
+        // 5. HIGH-CONTRAST ACTION BUTTON (Full-width frosted glass primary button with dark slate #0f172a text)
         Surface(
-          shape = RoundedCornerShape(12.dp),
-          color = Color.White.copy(alpha = 0.22f),
-          border = BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)),
+          shape = RoundedCornerShape(14.dp),
+          color = Color(0xFFF8FAFC).copy(alpha = 0.94f),
+          border = BorderStroke(1.dp, Color.White),
+          shadowElevation = 4.dp,
           modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(14.dp))
             .clickable { onOpenFullTimetable() }
             .testTag("btn_view_full_timetable")
         ) {
           Row(
             modifier = Modifier
               .fillMaxWidth()
-              .padding(vertical = 10.dp),
+              .padding(vertical = 12.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
           ) {
             Icon(
               imageVector = Icons.Default.CalendarMonth,
               contentDescription = null,
-              tint = Color.White,
-              modifier = Modifier.size(16.dp)
+              tint = Color(0xFF0F172A),
+              modifier = Modifier.size(18.dp)
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
-              text = if (selectedLang == "BN") "পূর্ণ সময়সূচি" else "Full Monthly Timetable",
+              text = if (selectedLang == "BN") "পূর্ণ সময়সূচি" else if (selectedLang == "AR") "الجدول الزمني الكامل" else "Full Monthly Timetable",
               style = TextStyle(
-                fontSize = 13.sp,
+                fontSize = 14.5.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = Color(0xFF0F172A)
               )
             )
           }
@@ -706,11 +718,11 @@ private fun AtmosphericSkyCanvas(
           )
         )
 
-        // 2. Layer 1: Background High-Altitude Stratus Clouds (Slow, Broad, Soft)
+        // 2. Layer 1: Background High-Altitude Stratus Clouds (Crisp, Broad, Soft)
         val bgCloudX = ((cloudOffsetBack * (w + 260f)) % (w + 260f)) - 130f
         drawCircle(
           brush = Brush.radialGradient(
-            colors = listOf(Color.White.copy(alpha = 0.16f), Color.Transparent),
+            colors = listOf(Color.White.copy(alpha = 0.35f), Color.Transparent),
             center = Offset(bgCloudX, h * 0.22f),
             radius = 70.dp.toPx()
           ),
@@ -719,7 +731,7 @@ private fun AtmosphericSkyCanvas(
         )
         drawCircle(
           brush = Brush.radialGradient(
-            colors = listOf(Color.White.copy(alpha = 0.14f), Color.Transparent),
+            colors = listOf(Color.White.copy(alpha = 0.30f), Color.Transparent),
             center = Offset(bgCloudX + 80.dp.toPx(), h * 0.26f),
             radius = 60.dp.toPx()
           ),
@@ -727,46 +739,46 @@ private fun AtmosphericSkyCanvas(
           center = Offset(bgCloudX + 80.dp.toPx(), h * 0.26f)
         )
 
-        // 3. Layer 2: Midground Volumetric Cumulus Clouds (Detailed multi-puff with sunlight highlights)
+        // 3. Layer 2: Midground Volumetric Cumulus Clouds (High-contrast multi-puff with sunlight highlights)
         val midCloud1X = ((cloudOffsetMid * (w + 220f)) % (w + 220f)) - 110f
         val midCloud2X = (((cloudOffsetMid + 0.55f) * (w + 220f)) % (w + 220f)) - 110f
 
-        // Cloud Cluster A (Billowy Cumulus Bank)
+        // Cloud Cluster A (High-contrast volumetric Cumulus Bank)
         val puffY = h * 0.32f
-        // Base underside shadow
+        // Soft volumetric underside depth in light-grey
         drawCircle(
           brush = Brush.radialGradient(
-            colors = listOf(Color(0xFF93C5FD).copy(alpha = 0.16f), Color.Transparent),
+            colors = listOf(Color(0xFFE2E8F0).copy(alpha = 0.40f), Color.Transparent),
             center = Offset(midCloud1X, puffY + 12.dp.toPx()),
             radius = 48.dp.toPx()
           ),
           radius = 48.dp.toPx(),
           center = Offset(midCloud1X, puffY + 12.dp.toPx())
         )
-        // Center white body
+        // Center pure white billowy body
         drawCircle(
           brush = Brush.radialGradient(
-            colors = listOf(Color.White.copy(alpha = 0.24f), Color.Transparent),
+            colors = listOf(Color.White.copy(alpha = 0.65f), Color.Transparent),
             center = Offset(midCloud1X, puffY),
             radius = 45.dp.toPx()
           ),
           radius = 45.dp.toPx(),
           center = Offset(midCloud1X, puffY)
         )
-        // Sun-kissed top crest
+        // Radiant sun-kissed top crest
         drawCircle(
           brush = Brush.radialGradient(
-            colors = listOf(Color(0xFFFFFBEB).copy(alpha = 0.28f), Color.Transparent),
+            colors = listOf(Color(0xFFFFFBEB).copy(alpha = 0.80f), Color.Transparent),
             center = Offset(midCloud1X - 10.dp.toPx(), puffY - 14.dp.toPx()),
             radius = 36.dp.toPx()
           ),
           radius = 36.dp.toPx(),
           center = Offset(midCloud1X - 10.dp.toPx(), puffY - 14.dp.toPx())
         )
-        // Adjacent billow
+        // Adjacent crisp billows
         drawCircle(
           brush = Brush.radialGradient(
-            colors = listOf(Color.White.copy(alpha = 0.22f), Color.Transparent),
+            colors = listOf(Color.White.copy(alpha = 0.58f), Color.Transparent),
             center = Offset(midCloud1X + 42.dp.toPx(), puffY - 6.dp.toPx()),
             radius = 38.dp.toPx()
           ),
@@ -775,7 +787,7 @@ private fun AtmosphericSkyCanvas(
         )
         drawCircle(
           brush = Brush.radialGradient(
-            colors = listOf(Color.White.copy(alpha = 0.18f), Color.Transparent),
+            colors = listOf(Color.White.copy(alpha = 0.50f), Color.Transparent),
             center = Offset(midCloud1X - 38.dp.toPx(), puffY + 4.dp.toPx()),
             radius = 32.dp.toPx()
           ),
@@ -783,11 +795,11 @@ private fun AtmosphericSkyCanvas(
           center = Offset(midCloud1X - 38.dp.toPx(), puffY + 4.dp.toPx())
         )
 
-        // Cloud Cluster B (Lower Floating Fluff)
+        // Cloud Cluster B (Lower Floating Fluff in crisp white)
         val puff2Y = h * 0.54f
         drawCircle(
           brush = Brush.radialGradient(
-            colors = listOf(Color.White.copy(alpha = 0.20f), Color.Transparent),
+            colors = listOf(Color.White.copy(alpha = 0.55f), Color.Transparent),
             center = Offset(midCloud2X, puff2Y),
             radius = 40.dp.toPx()
           ),
@@ -796,7 +808,7 @@ private fun AtmosphericSkyCanvas(
         )
         drawCircle(
           brush = Brush.radialGradient(
-            colors = listOf(Color(0xFFFFFBEB).copy(alpha = 0.22f), Color.Transparent),
+            colors = listOf(Color(0xFFFFFBEB).copy(alpha = 0.60f), Color.Transparent),
             center = Offset(midCloud2X + 32.dp.toPx(), puff2Y - 8.dp.toPx()),
             radius = 32.dp.toPx()
           ),
@@ -804,11 +816,11 @@ private fun AtmosphericSkyCanvas(
           center = Offset(midCloud2X + 32.dp.toPx(), puff2Y - 8.dp.toPx())
         )
 
-        // 4. Layer 3: Foreground Atmospheric Wisps (Fast, semi-transparent)
+        // 4. Layer 3: Foreground Atmospheric Wisps (Fast, crisp white)
         val foreCloudX = ((cloudOffsetFore * (w + 180f)) % (w + 180f)) - 90f
         drawCircle(
           brush = Brush.radialGradient(
-            colors = listOf(Color.White.copy(alpha = 0.12f), Color.Transparent),
+            colors = listOf(Color.White.copy(alpha = 0.28f), Color.Transparent),
             center = Offset(foreCloudX, h * 0.70f),
             radius = 36.dp.toPx()
           ),
@@ -1036,78 +1048,17 @@ private fun GlowingCelestialArc(
       val w = size.width
       val h = size.height
 
-      // Semi-elliptical arc parameters:
+      // Natural parabolic celestial orbit curve:
       // RadiusX is bounded safely away from screen edges (0.36f of width)
       // RadiusY gives an elegant curve without clipping at the top
       // Arc center is placed at 56% height to leave 44% height at the bottom for labels
+      // Orbit path is completely INVISIBLE (no track lines, no dashed strokes, no endpoint dots)
       val arcCenter = Offset(w * 0.5f, h * 0.56f)
       val radiusX = w * 0.36f
       val radiusY = h * 0.38f
 
-      // 1. Background Neon Arc Track
-      val arcPath = Path().apply {
-        val steps = 40
-        for (i in 0..steps) {
-          val t = i.toFloat() / steps
-          val angle = PI.toFloat() * (1f - t) // PI (left) to 0 (right)
-          val x = arcCenter.x + radiusX * cos(angle)
-          val y = arcCenter.y - radiusY * sin(angle)
-          if (i == 0) moveTo(x, y) else lineTo(x, y)
-        }
-      }
-
-      // Draw faint dashed background guide
-      drawPath(
-        path = arcPath,
-        color = Color.White.copy(alpha = 0.28f),
-        style = Stroke(
-          width = 2.dp.toPx(),
-          cap = StrokeCap.Round,
-          pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
-        )
-      )
-
-      // Draw endpoints anchors (subtle glowing rings)
-      drawCircle(
-        color = Color.White.copy(alpha = 0.6f),
-        radius = 3.dp.toPx(),
-        center = Offset(arcCenter.x - radiusX, arcCenter.y)
-      )
-      drawCircle(
-        color = Color.White.copy(alpha = 0.6f),
-        radius = 3.dp.toPx(),
-        center = Offset(arcCenter.x + radiusX, arcCenter.y)
-      )
-
-      // 2. Glowing Active Trajectory Arc
+      // Current Position of Celestial Body strictly locked on invisible parabolic celestial curve
       val clampedProgress = progress.coerceIn(0f, 1f)
-      val activePath = Path().apply {
-        val steps = (40 * clampedProgress).toInt().coerceAtLeast(1)
-        for (i in 0..steps) {
-          val t = (i.toFloat() / 40f).coerceAtMost(clampedProgress)
-          val angle = PI.toFloat() * (1f - t)
-          val x = arcCenter.x + radiusX * cos(angle)
-          val y = arcCenter.y - radiusY * sin(angle)
-          if (i == 0) moveTo(x, y) else lineTo(x, y)
-        }
-      }
-
-      drawPath(
-        path = activePath,
-        brush = Brush.horizontalGradient(
-          listOf(
-            Color.White.copy(alpha = 0.5f),
-            if (atmosphere == SkyAtmosphere.DAY_SUNSHINE) Color(0xFFFDE047) else Color(0xFF67E8F9),
-            Color.White
-          )
-        ),
-        style = Stroke(
-          width = 3.dp.toPx(),
-          cap = StrokeCap.Round
-        )
-      )
-
-      // 3. Current Position of Celestial Body strictly locked on Arc trajectory
       val boundedProgress = clampedProgress.coerceIn(0.02f, 0.98f)
       val currentAngle = PI.toFloat() * (1f - boundedProgress)
       val celestialX = arcCenter.x + radiusX * cos(currentAngle)
@@ -1118,12 +1069,12 @@ private fun GlowingCelestialArc(
       if (atmosphere == SkyAtmosphere.DAY_SUNSHINE || atmosphere == SkyAtmosphere.SUNSET_TWILIGHT) {
         // --- REALISTIC GLOWING SUN WITH LENS FLARE & RAYS ---
         // 1. Broad outer atmospheric corona
-        val outerRadius = 28.dp.toPx() * sunPulse
+        val outerRadius = 30.dp.toPx() * sunPulse
         drawCircle(
           brush = Brush.radialGradient(
             colors = listOf(
-              Color(0xFFFDE047).copy(alpha = 0.35f),
-              Color(0xFFF59E0B).copy(alpha = 0.15f),
+              Color(0xFFFEF08A).copy(alpha = 0.50f),
+              Color(0xFFF59E0B).copy(alpha = 0.22f),
               Color.Transparent
             ),
             center = celestialPos,
@@ -1134,12 +1085,12 @@ private fun GlowingCelestialArc(
         )
 
         // 2. Chromatic lens flare halo ring
-        val ringRadius = 21.dp.toPx() * sunPulse
+        val ringRadius = 22.dp.toPx() * sunPulse
         drawCircle(
-          color = Color(0xFF67E8F9).copy(alpha = 0.22f),
+          color = Color(0xFF67E8F9).copy(alpha = 0.35f),
           radius = ringRadius,
           center = celestialPos,
-          style = Stroke(width = 1.dp.toPx())
+          style = Stroke(width = 1.2.dp.toPx())
         )
 
         // 3. Radiating Sunburst Rays (8 dynamic solar rays)
@@ -1147,14 +1098,14 @@ private fun GlowingCelestialArc(
         for (r in 0 until numRays) {
           val rayAngle = sunCoronaRotation + (r.toFloat() / numRays) * (2f * PI.toFloat())
           val innerDist = 10.dp.toPx()
-          val outerDist = (15.5f + 2.5f * sin(rayAngle * 2f)).dp.toPx() * sunPulse
+          val outerDist = (16.5f + 2.5f * sin(rayAngle * 2f)).dp.toPx() * sunPulse
           val rayStart = Offset(celestialX + innerDist * cos(rayAngle), celestialY + innerDist * sin(rayAngle))
           val rayEnd = Offset(celestialX + outerDist * cos(rayAngle), celestialY + outerDist * sin(rayAngle))
           drawLine(
-            color = Color(0xFFFEF9C3).copy(alpha = 0.55f),
+            color = Color(0xFFFEF9C3).copy(alpha = 0.80f),
             start = rayStart,
             end = rayEnd,
-            strokeWidth = 1.6.dp.toPx(),
+            strokeWidth = 2.dp.toPx(),
             cap = StrokeCap.Round
           )
         }
@@ -1163,25 +1114,25 @@ private fun GlowingCelestialArc(
         drawCircle(
           brush = Brush.radialGradient(
             colors = listOf(
-              Color(0xFFFFFBEB).copy(alpha = 0.85f),
-              Color(0xFFFBBF24).copy(alpha = 0.45f),
+              Color(0xFFFFFBEB).copy(alpha = 0.95f),
+              Color(0xFFFBBF24).copy(alpha = 0.55f),
               Color.Transparent
             ),
             center = celestialPos,
-            radius = 14.dp.toPx()
+            radius = 15.dp.toPx()
           ),
-          radius = 14.dp.toPx(),
+          radius = 15.dp.toPx(),
           center = celestialPos
         )
 
         // 5. Incandescent Core Sun Disc
         drawCircle(
           brush = Brush.radialGradient(
-            colors = listOf(Color.White, Color(0xFFFFF7ED), Color(0xFFFDE047)),
+            colors = listOf(Color.White, Color(0xFFFEF9C3), Color(0xFFFACC15)),
             center = celestialPos,
-            radius = 8.5.dp.toPx()
+            radius = 9.dp.toPx()
           ),
-          radius = 8.5.dp.toPx(),
+          radius = 9.dp.toPx(),
           center = celestialPos
         )
 
@@ -1195,45 +1146,41 @@ private fun GlowingCelestialArc(
         )
       } else {
         // --- REALISTIC HIJRI MOON WITH SOFT MOONLIGHT GLOW ---
-        // 1. Soft atmospheric moonlight halo
-        drawCircle(
-          brush = Brush.radialGradient(
-            colors = listOf(
-              Color(0xFFE0F2FE).copy(alpha = 0.32f),
-              Color(0xFF38BDF8).copy(alpha = 0.10f),
-              Color.Transparent
-            ),
-            center = celestialPos,
-            radius = 26.dp.toPx()
-          ),
-          radius = 26.dp.toPx(),
-          center = celestialPos
-        )
-
-        // 2. Secondary lunar corona
-        drawCircle(
-          brush = Brush.radialGradient(
-            colors = listOf(Color(0xFFF8FAFC).copy(alpha = 0.45f), Color.Transparent),
-            center = celestialPos,
-            radius = 14.dp.toPx()
-          ),
-          radius = 14.dp.toPx(),
-          center = celestialPos
-        )
-
-        // 3. Realistic Hijri Moon Phase with Earthshine and Crater Topography
+        // Hijri Day 28-30: Completely hide moon graphic, showing only the starry night sky!
         if (hijriDay !in 28..30) {
+          // 1. Soft atmospheric moonlight halo (Amplified for Full Moon Day 13-15)
+          val haloAlpha = if (hijriDay in 13..15) 0.52f else 0.30f
+          val haloRadius = if (hijriDay in 13..15) 32.dp.toPx() else 24.dp.toPx()
+          drawCircle(
+            brush = Brush.radialGradient(
+              colors = listOf(
+                Color(0xFFE0F2FE).copy(alpha = haloAlpha),
+                Color(0xFF38BDF8).copy(alpha = haloAlpha * 0.35f),
+                Color.Transparent
+              ),
+              center = celestialPos,
+              radius = haloRadius
+            ),
+            radius = haloRadius,
+            center = celestialPos
+          )
+
+          // 2. Secondary lunar corona
+          drawCircle(
+            brush = Brush.radialGradient(
+              colors = listOf(Color(0xFFF8FAFC).copy(alpha = if (hijriDay in 13..15) 0.60f else 0.45f), Color.Transparent),
+              center = celestialPos,
+              radius = 14.dp.toPx()
+            ),
+            radius = 14.dp.toPx(),
+            center = celestialPos
+          )
+
+          // 3. Realistic Hijri Moon Phase with Earthshine and Crater Topography
           drawMoonPhase(
             center = celestialPos,
             radius = 8.5.dp.toPx(),
             hijriDay = hijriDay
-          )
-        } else {
-          // Amabashya (New Moon): Soft silhouetted outline with ambient starlight
-          drawCircle(
-            color = Color(0xFF0F172A).copy(alpha = 0.50f),
-            radius = 8.5.dp.toPx(),
-            center = celestialPos
           )
         }
       }
@@ -1259,67 +1206,81 @@ private fun GlowingCelestialArc(
       )
     }
 
-    // Bottom Start Time Label: Positioned cleanly below left arc endpoint with generous padding
-    Column(
+    // Bottom Start Time Label: Frosted glass container with proper margin padding
+    Surface(
+      shape = RoundedCornerShape(10.dp),
+      color = Color.Black.copy(alpha = 0.32f),
+      border = BorderStroke(0.7.dp, Color.White.copy(alpha = 0.22f)),
       modifier = Modifier
         .align(Alignment.BottomStart)
-        .padding(start = 18.dp, bottom = 4.dp)
+        .padding(start = 14.dp, bottom = 4.dp)
     ) {
-      Text(
-        text = when (selectedLang) {
-          "BN" -> "শুরু"
-          "AR" -> "البداية"
-          else -> "Start"
-        },
-        style = TextStyle(
-          fontSize = 10.sp,
-          color = Color.White.copy(alpha = 0.75f),
-          fontWeight = FontWeight.Medium
-        ),
-        maxLines = 1
-      )
-      Text(
-        text = startFormatted,
-        style = TextStyle(
-          fontSize = 12.sp,
-          fontWeight = FontWeight.Bold,
-          color = Color.White
-        ),
-        maxLines = 1,
-        softWrap = false
-      )
+      Column(
+        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+      ) {
+        Text(
+          text = when (selectedLang) {
+            "BN" -> "শুরু"
+            "AR" -> "البداية"
+            else -> "Start"
+          },
+          style = TextStyle(
+            fontSize = 9.5.sp,
+            color = Color.White.copy(alpha = 0.80f),
+            fontWeight = FontWeight.Medium
+          ),
+          maxLines = 1
+        )
+        Text(
+          text = startFormatted,
+          style = TextStyle(
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+          ),
+          maxLines = 1,
+          softWrap = false
+        )
+      }
     }
 
-    // Bottom End Time Label: Positioned cleanly below right arc endpoint with generous padding
-    Column(
-      horizontalAlignment = Alignment.End,
+    // Bottom End Time Label: Frosted glass container with proper margin padding
+    Surface(
+      shape = RoundedCornerShape(10.dp),
+      color = Color.Black.copy(alpha = 0.32f),
+      border = BorderStroke(0.7.dp, Color.White.copy(alpha = 0.22f)),
       modifier = Modifier
         .align(Alignment.BottomEnd)
-        .padding(end = 18.dp, bottom = 4.dp)
+        .padding(end = 14.dp, bottom = 4.dp)
     ) {
-      Text(
-        text = when (selectedLang) {
-          "BN" -> "শেষ"
-          "AR" -> "النهاية"
-          else -> "End"
-        },
-        style = TextStyle(
-          fontSize = 10.sp,
-          color = Color.White.copy(alpha = 0.75f),
-          fontWeight = FontWeight.Medium
-        ),
-        maxLines = 1
-      )
-      Text(
-        text = endFormatted,
-        style = TextStyle(
-          fontSize = 12.sp,
-          fontWeight = FontWeight.Bold,
-          color = Color.White
-        ),
-        maxLines = 1,
-        softWrap = false
-      )
+      Column(
+        horizontalAlignment = Alignment.End,
+        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+      ) {
+        Text(
+          text = when (selectedLang) {
+            "BN" -> "শেষ"
+            "AR" -> "النهاية"
+            else -> "End"
+          },
+          style = TextStyle(
+            fontSize = 9.5.sp,
+            color = Color.White.copy(alpha = 0.80f),
+            fontWeight = FontWeight.Medium
+          ),
+          maxLines = 1
+        )
+        Text(
+          text = endFormatted,
+          style = TextStyle(
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+          ),
+          maxLines = 1,
+          softWrap = false
+        )
+      }
     }
   }
 }

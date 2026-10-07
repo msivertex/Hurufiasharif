@@ -39,7 +39,7 @@ import kotlin.math.sin
 
 /**
  * 3D Page-Flip Animation on Date Numbers
- * Flips smoothly along the X-axis when date text updates.
+ * Flips smoothly along the X-axis on entrance and when date text updates.
  */
 @Composable
 fun FlipDateCardNumber(
@@ -54,7 +54,15 @@ fun FlipDateCardNumber(
 ) {
   var displayedText by remember { mutableStateOf(dateText) }
   var pendingText by remember { mutableStateOf(dateText) }
-  val flipProgress = remember { Animatable(0f) }
+  val flipProgress = remember { Animatable(-90f) }
+
+  // Smooth 3D Page-Flip Entrance Animation
+  LaunchedEffect(Unit) {
+    flipProgress.animateTo(
+      targetValue = 0f,
+      animationSpec = tween(durationMillis = 650, easing = FastOutSlowInEasing)
+    )
+  }
 
   LaunchedEffect(dateText) {
     if (dateText != displayedText) {
@@ -77,7 +85,7 @@ fun FlipDateCardNumber(
     contentAlignment = Alignment.Center,
     modifier = modifier.graphicsLayer {
       rotationX = rotationXAngle
-      cameraDistance = 14f * density
+      cameraDistance = 16f * density
     }
   ) {
     Text(
@@ -302,12 +310,44 @@ fun BanglaSeasonalCanvas(
   }
 }
 
+private data class HijriCanvasStar(
+  val xRatio: Float,
+  val yRatio: Float,
+  val baseRadiusDp: Float,
+  val phaseOffset: Float,
+  val color: Color,
+  val hasSpike: Boolean = false
+)
+
+private val HIJRI_CANVAS_STARFIELD = listOf(
+  HijriCanvasStar(0.08f, 0.12f, 2.2f, 0.0f, Color(0xFF6EE7B7), hasSpike = true),
+  HijriCanvasStar(0.18f, 0.18f, 1.4f, 1.2f, Color(0xFFFFFFFF)),
+  HijriCanvasStar(0.32f, 0.08f, 1.5f, 2.7f, Color(0xFFFEF3C7)),
+  HijriCanvasStar(0.48f, 0.14f, 2.0f, 0.8f, Color(0xFF6EE7B7), hasSpike = true),
+  HijriCanvasStar(0.65f, 0.10f, 1.3f, 3.4f, Color(0xFFFFFFFF)),
+  HijriCanvasStar(0.80f, 0.15f, 1.8f, 1.9f, Color(0xFFD1FAE5), hasSpike = true),
+  HijriCanvasStar(0.92f, 0.11f, 1.2f, 4.2f, Color(0xFFFEF3C7)),
+  HijriCanvasStar(0.12f, 0.32f, 1.2f, 2.1f, Color(0xFFFFFFFF)),
+  HijriCanvasStar(0.24f, 0.28f, 1.6f, 0.5f, Color(0xFF6EE7B7)),
+  HijriCanvasStar(0.72f, 0.32f, 1.5f, 3.8f, Color(0xFFFFFFFF)),
+  HijriCanvasStar(0.86f, 0.26f, 1.7f, 1.7f, Color(0xFF6EE7B7), hasSpike = true),
+  HijriCanvasStar(0.95f, 0.36f, 1.1f, 4.9f, Color(0xFFFEF3C7)),
+  HijriCanvasStar(0.06f, 0.52f, 1.3f, 0.9f, Color(0xFF6EE7B7)),
+  HijriCanvasStar(0.20f, 0.58f, 1.1f, 3.1f, Color(0xFFFFFFFF)),
+  HijriCanvasStar(0.82f, 0.54f, 1.5f, 2.4f, Color(0xFF6EE7B7)),
+  HijriCanvasStar(0.94f, 0.60f, 1.2f, 4.6f, Color(0xFFFFFFFF)),
+  HijriCanvasStar(0.14f, 0.72f, 1.4f, 1.5f, Color(0xFFD1FAE5)),
+  HijriCanvasStar(0.28f, 0.78f, 1.1f, 3.6f, Color(0xFFFEF3C7)),
+  HijriCanvasStar(0.70f, 0.74f, 1.6f, 0.3f, Color(0xFF6EE7B7), hasSpike = true),
+  HijriCanvasStar(0.88f, 0.76f, 1.2f, 2.8f, Color(0xFFFFFFFF))
+)
+
 /**
  * 2. DYNAMIC HIJRI SPECIAL MONTH CANVAS:
- * - Starry night canvas with Hijri-day computed Moon phases (1-30 days) with soft moonlight glow.
+ * - Deep emerald/midnight night sky canvas with animated shimmering star particles (@keyframes twinkleStars).
  * - Ramadan Special (Month 9): Subtle glowing Arabic lanterns (Fanous) gently swaying at top edges.
  * - Dhul Hijjah Special (Month 12): Serene golden geometric Islamic star aura background pattern.
- * - General Islamic Months: Deep Emerald starlight atmosphere with shimmering stars.
+ * - Single Central Moon is rendered by the card layout (no duplicate background moon).
  */
 @Composable
 fun HijriMonthAtmosphericCanvas(
@@ -317,14 +357,15 @@ fun HijriMonthAtmosphericCanvas(
 ) {
   val infiniteTransition = rememberInfiniteTransition(label = "hijri_season_anim")
 
-  val starPulse by infiniteTransition.animateFloat(
-    initialValue = 0.25f,
-    targetValue = 0.95f,
+  // Star twinkling continuous phase driver (0 to 2*PI)
+  val starTwinklePhase by infiniteTransition.animateFloat(
+    initialValue = 0f,
+    targetValue = (2f * PI).toFloat(),
     animationSpec = infiniteRepeatable(
-      animation = tween(2400, easing = LinearEasing),
-      repeatMode = RepeatMode.Reverse
+      animation = tween(3000, easing = LinearEasing),
+      repeatMode = RepeatMode.Restart
     ),
-    label = "star_pulse"
+    label = "star_twinkle_phase"
   )
 
   val fanousSway by infiniteTransition.animateFloat(
@@ -351,40 +392,56 @@ fun HijriMonthAtmosphericCanvas(
     val w = size.width
     val h = size.height
 
-    // 1. Shimmering particle stars across deep emerald/midnight backdrop
-    val starPositions = listOf(
-      Offset(w * 0.10f, h * 0.16f),
-      Offset(w * 0.24f, h * 0.10f),
-      Offset(w * 0.38f, h * 0.20f),
-      Offset(w * 0.58f, h * 0.12f),
-      Offset(w * 0.72f, h * 0.16f),
-      Offset(w * 0.92f, h * 0.22f),
-      Offset(w * 0.14f, h * 0.42f),
-      Offset(w * 0.68f, h * 0.45f),
-      Offset(w * 0.32f, h * 0.56f),
-      Offset(w * 0.88f, h * 0.54f),
-      Offset(w * 0.20f, h * 0.68f),
-      Offset(w * 0.78f, h * 0.72f)
+    // 1. Celestial Emerald Nebula Mist Dust
+    drawCircle(
+      brush = Brush.radialGradient(
+        colors = listOf(Color(0xFF059669).copy(alpha = 0.12f), Color.Transparent),
+        center = Offset(w * 0.5f, h * 0.35f),
+        radius = w * 0.65f
+      ),
+      radius = w * 0.65f,
+      center = Offset(w * 0.5f, h * 0.35f)
     )
 
-    starPositions.forEachIndexed { i, pos ->
-      val alphaMultiplier = if (i % 2 == 0) starPulse else (1.2f - starPulse)
-      val r = if (i % 3 == 0) 2.2.dp.toPx() else 1.4.dp.toPx()
+    // 2. Animated shimmering particle stars (twinkleStars) across deep emerald/midnight backdrop
+    HIJRI_CANVAS_STARFIELD.forEach { star ->
+      val pos = Offset(w * star.xRatio, h * star.yRatio)
+      val twinkle = (0.32f + 0.68f * (0.5f + 0.5f * sin(starTwinklePhase + star.phaseOffset))).coerceIn(0.14f, 1.0f)
+
+      // Outer delicate starlight aura glow
       drawCircle(
-        color = Color(0xFF6EE7B7).copy(alpha = (0.55f * alphaMultiplier).coerceIn(0.12f, 0.92f)),
-        radius = r,
+        color = star.color.copy(alpha = twinkle * 0.40f),
+        radius = star.baseRadiusDp.dp.toPx() * 2.2f,
         center = pos
       )
-    }
 
-    // 2. Computed Hijri Moon Phase (1..30 days) with soft moonlight aura
-    val moonCenter = Offset(w * 0.82f, h * 0.25f)
-    val moonRadius = 16.dp.toPx()
-    drawCalendarMoonPhase(
-      hijriDay = hijriDay,
-      center = moonCenter,
-      radius = moonRadius
-    )
+      // Core brilliant star pinprick
+      drawCircle(
+        color = star.color.copy(alpha = twinkle),
+        radius = star.baseRadiusDp.dp.toPx(),
+        center = pos
+      )
+
+      // 4-point cross diffraction spikes on bright navigational stars
+      if (star.hasSpike && twinkle > 0.65f) {
+        val spikeLen = 4.5.dp.toPx() * twinkle
+        val spikeAlpha = (twinkle * 0.45f).coerceIn(0f, 1f)
+        drawLine(
+          color = star.color.copy(alpha = spikeAlpha),
+          start = Offset(pos.x - spikeLen, pos.y),
+          end = Offset(pos.x + spikeLen, pos.y),
+          strokeWidth = 0.8.dp.toPx(),
+          cap = StrokeCap.Round
+        )
+        drawLine(
+          color = star.color.copy(alpha = spikeAlpha),
+          start = Offset(pos.x, pos.y - spikeLen),
+          end = Offset(pos.x, pos.y + spikeLen),
+          strokeWidth = 0.8.dp.toPx(),
+          cap = StrokeCap.Round
+        )
+      }
+    }
 
     // 3. RAMADAN SPECIAL (Month 9): Glowing Arabic Lanterns (Fanous) gently swaying at top corners
     if (hijriMonth == 9) {

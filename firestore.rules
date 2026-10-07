@@ -1,0 +1,100 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidTimestamp(val) {
+      return val is timestamp && val <= request.time;
+    }
+
+    // Validation for UserProfile
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['userId', 'email', 'coins', 'level', 'streak', 'selectedLanguage', 'selectedQariVoice']) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.email is string && data.email.size() <= 200 &&
+             data.coins is int && data.coins >= 0 &&
+             data.level is int && data.level >= 1 &&
+             data.streak is int && data.streak >= 0 &&
+             data.selectedLanguage in ['BN', 'EN', 'AR'] &&
+             data.selectedQariVoice in ['MALE_QARI', 'FEMALE_QARIA'] &&
+             (!('displayName' in data) || data.displayName is string) &&
+             (!('createdAt' in data) || isValidTimestamp(data.createdAt)) &&
+             (!('lastActive' in data) || isValidTimestamp(data.lastActive));
+    }
+
+    // Validation for ChapterProgress
+    function isValidChapterProgress(data) {
+      return data.keys().hasAll(['userId', 'chapterId', 'unlocked', 'completed', 'completedPages', 'totalPages']) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.chapterId is string && data.chapterId.size() <= 50 &&
+             data.unlocked is bool &&
+             data.completed is bool &&
+             data.completedPages is int && data.completedPages >= 0 &&
+             data.totalPages is int && data.totalPages >= 0 &&
+             (!('stars' in data) || (data.stars is int && data.stars >= 0 && data.stars <= 3)) &&
+             (!('updatedAt' in data) || isValidTimestamp(data.updatedAt));
+    }
+
+    // Validation for SurahProgress
+    function isValidSurahProgress(data) {
+      return data.keys().hasAll(['userId', 'surahNumber', 'completedVerses', 'totalVerses', 'isMemorized']) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.surahNumber is int && data.surahNumber >= 1 && data.surahNumber <= 114 &&
+             data.completedVerses is int && data.completedVerses >= 0 &&
+             data.totalVerses is int && data.totalVerses >= 0 &&
+             data.isMemorized is bool &&
+             (!('surahName' in data) || data.surahName is string) &&
+             (!('lastPracticed' in data) || isValidTimestamp(data.lastPracticed));
+    }
+
+    // Validation for DailyDeedRecord
+    function isValidDailyDeedRecord(data) {
+      return data.keys().hasAll(['userId', 'date', 'completedDeeds']) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.date is string && data.date.size() <= 20 &&
+             data.completedDeeds is list && data.completedDeeds.size() <= 50 &&
+             (!('updatedAt' in data) || isValidTimestamp(data.updatedAt));
+    }
+
+    // Rules for User Profile document
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow delete: if isOwner(userId);
+
+      // Subcollection: Kaida chapter progress
+      match /progress/{chapterId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidChapterProgress(request.resource.data);
+        allow update: if isOwner(userId) && isValidChapterProgress(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      // Subcollection: Surah memorization progress
+      match /surah_progress/{surahNumber} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidSurahProgress(request.resource.data);
+        allow update: if isOwner(userId) && isValidSurahProgress(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      // Subcollection: Daily deeds record
+      match /daily_deeds/{deedDate} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidDailyDeedRecord(request.resource.data);
+        allow update: if isOwner(userId) && isValidDailyDeedRecord(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}
